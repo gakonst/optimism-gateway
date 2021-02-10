@@ -1,0 +1,36 @@
+{
+  "name": "@project/monorepo",
+  "version": "1.0.0",
+  "keywords": [
+    "ethereum",
+    "react",
+    "workspaces",
+    "yarn"
+  ],
+  "private": true,
+  "scripts": {
+    "subgraph:auth": "yarn workspace @project/l2-subgraph auth",
+    "subgraph:codegen": "yarn workspace @project/l2-subgraph codegen",
+    "subgraph:build": "yarn workspace @project/l2-subgraph build",
+    "subgraph:deploy": "yarn workspace @project/l2-subgraph deploy",
+    "app:build": "yarn workspace @project/react-app build",
+    "app:eject": "yarn workspace @project/react-app eject",
+    "app:ipfs": "yarn workspace @project/react-app ipfs",
+    "app:start:kovan": "REACT_APP_ETH_NETWORK=kovan yarn workspace @project/react-app start",
+    "app:start": "REACT_APP_ETH_NETWORK=mainnet yarn workspace @project/react-app start",
+    "app:test": "yarn workspace @project/react-app test",
+    "app:deploy": "surge packages/react-app/build optimism-snx-tracker.surge.sh"
+  },
+  "workspaces": {
+    "nohoist": [
+      "**/@graphprotocol/graph-ts",
+      "**/@graphprotocol/graph-ts/**"
+    ],
+    "packages": [
+      "packages/*"
+    ]
+  },
+  "dependencies": {
+    "packages": "^0.0.8"
+  }
+}

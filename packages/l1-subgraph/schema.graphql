@@ -1,0 +1,5 @@
+type ReceivedWithdrawal @entity {
+  id: ID!
+  hash: String!
+  timestamp: Int!
+}

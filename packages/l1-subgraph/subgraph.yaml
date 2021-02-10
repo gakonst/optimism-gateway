@@ -1,0 +1,26 @@
+specVersion: 0.0.2
+description: Optimistic ethereum transfers
+repository: https://github.com/ethereum-optimism/snx-transer-tracker/packages/l1-subgraph
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: OVM_CrossDomainMessenger
+    network: mainnet
+    source:
+      address: "0xfBE93ba0a2Df92A8e8D40cE00acCF9248a6Fc812"
+      abi: OVM_CrossDomainMessenger
+      startBlock: 11657097
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - ReceivedWithdrawal
+      abis:
+        - name: OVM_CrossDomainMessenger
+          file: ./abis/OVM_CrossDomainMessenger.json
+      eventHandlers:
+        - event: RelayedMessage(bytes32)
+          handler: handleMessageReceived
+      file: ./src/mapping.ts

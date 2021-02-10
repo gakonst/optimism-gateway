@@ -1,0 +1,7 @@
+type Withdrawal @entity {
+  id: ID!
+  hash: String!
+  timestamp: Int!
+  account: Bytes!
+  amount: BigInt!
+}
