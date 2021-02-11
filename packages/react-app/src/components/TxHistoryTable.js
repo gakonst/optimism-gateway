@@ -92,15 +92,7 @@ function TxHistoryTable({
                   <Box d="flex" flexDir="column" alignItems="center">
                     <Spinner h="150px" w="150px" />
                     <Text mt={12} textAlign="center">
-                      {withdrawalsLoading ? (
-                        <>
-                          Fetching withdrawals... <br />
-                        </>
-                      ) : (
-                        <>
-                          Fetching withdrawals... <br />
-                        </>
-                      )}
+                      Fetching withdrawals...
                     </Text>
                   </Box>
                 </Center>

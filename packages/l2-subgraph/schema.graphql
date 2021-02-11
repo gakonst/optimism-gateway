@@ -5,3 +5,9 @@ type Withdrawal @entity {
   account: Bytes!
   amount: BigInt!
 }
+
+type SentMessage @entity {
+  id: ID!
+  txHash: String!
+  message: Bytes!
+}

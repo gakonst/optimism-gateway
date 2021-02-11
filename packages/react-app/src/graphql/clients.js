@@ -5,6 +5,6 @@ export default {
     uri: 'https://api.thegraph.com/subgraphs/name/gigamesh/snx-l1-to-l2',
   }),
   l2: new ApolloClient({
-    uri: 'https://api.staging.thegraph.com/subgraphs/name/k-ho/optimism-snx-withdrawals',
+    uri: 'https://api.staging.thegraph.com/subgraphs/name/gigamesh/ovm-token-transfers',
   }),
 };

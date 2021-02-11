@@ -11,7 +11,7 @@ import SearchInput from './components/SearchInput';
 import TxHistoryTable from './components/TxHistoryTable';
 import AddressView from './components/AddressView';
 import clients from './graphql/clients';
-import { GET_WITHDRAWALS, GET_WITHDRAWAL_CONFIRMATIONS } from './graphql/subgraph';
+import { GET_WITHDRAWALS, GET_SENT_MESSAGES, GET_WITHDRAWAL_CONFIRMATIONS } from './graphql/subgraph';
 
 // test address: 0x5A34F25040ba6E12daeA0512D4D2a0043ECc9292
 
@@ -42,33 +42,27 @@ function App() {
   const [currentTableView, setCurrentTableView] = React.useState(1);
   const location = useLocation();
   const [snxPrice, setSnxPrice] = React.useState(0);
-  const [l2FromBlockNum, _setL2FromBlockNum] = React.useState(Number.POSITIVE_INFINITY);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [deposits, _setDeposits] = React.useState();
-  const [withdrawals, _setWithdrawals] = React.useState();
+  const [withdrawals, setWithdrawals] = React.useState();
   const [depositsLoading, setDepositsLoading] = React.useState(false);
-  const [currentWithdrawalPage, setCurrentWithdrawalPage] = React.useState(0);
+  const [currentWithdrawalIndex, setCurrentWithdrawalIndex] = React.useState(0);
   const withdrawalConfirmations = useQuery(GET_WITHDRAWAL_CONFIRMATIONS, { client: clients.l1 });
   const withdrawalsInitiated = useQuery(GET_WITHDRAWALS, {
     client: clients.l2,
-    variables: {
-      offset: currentWithdrawalPage * 50,
-      limit: 50,
-    },
+    // variables: {
+    //   offset: currentWithdrawalIndex * 50,
+    //   limit: 50,
+    // },
+  });
+  const sentMessagesFromL2 = useQuery(GET_SENT_MESSAGES, {
+    client: clients.l2,
+    // variables: {
+    //   offset: currentWithdrawalIndex * 50,
+    //   limit: 50,
+    // },
   });
   const toast = useToast();
-
-  const clearCache = () => {
-    localStorage.removeItem('l2ToBlockNum');
-    localStorage.removeItem('l2FromBlockNum');
-    localStorage.removeItem('withdrawals');
-    window.location.reload();
-  };
-
-  const setWithdrawals = React.useCallback(transactions => {
-    localStorage.setItem('withdrawals', JSON.stringify(transactions));
-    _setWithdrawals(transactions);
-  }, []);
 
   /**
    * Routes to address page if user enters valid address
@@ -98,48 +92,36 @@ function App() {
     (async () => {
       if (
         currentTableView === views.WITHDRAWALS &&
-        !withdrawalsInitiated.loading &&
-        !withdrawalsInitiated.error &&
         withdrawalsInitiated.data &&
-        !withdrawalConfirmations.loading &&
-        !withdrawalConfirmations.error &&
-        withdrawalConfirmations.data
+        withdrawalConfirmations.data &&
+        sentMessagesFromL2.data
       ) {
-        console.log(withdrawalConfirmations.data);
-        const withdrawalProms = withdrawalsInitiated.data.withdrawals.map(async tx => {
+        let withdrawals = withdrawalsInitiated.data.withdrawals.map(tx => {
           tx.amount = ethers.utils.formatEther(tx.amount);
           tx.address = tx.account;
           tx.layer2Hash = tx.hash;
-          const msgHashes = await watcher.getMessageHashesFromL2Tx(tx.hash);
-          const receipt = await watcher.getL1TransactionReceipt(msgHashes[0], false);
-          if (receipt) {
-            tx.layer1Hash = receipt.transactionHash;
-            const block = await l1Provider.getBlock(receipt.blockNumber);
-            const timestamp = Number(block.timestamp);
-            tx.otherLayerTimestamp = timestamp;
-          }
+
+          const sentMessage = sentMessagesFromL2.data.sentMessages.find(msg => msg.txHash === tx.layer2Hash);
+          tx.message = sentMessage.message;
+
+          const l1MsgHash = ethers.utils.solidityKeccak256(['bytes'], [tx.message]);
+
+          const l1Data = withdrawalConfirmations.data.receivedWithdrawals.find(msg => msg.msgHash === l1MsgHash);
+          tx.layer1Hash = l1Data?.hash;
+          tx.otherLayerTimestamp = l1Data?.timestamp;
+          delete tx.hash;
           return tx;
         });
-        const withdrawals = [];
-
-        for (const promise of withdrawalProms) {
-          withdrawals.push(await promise);
-        }
-
         withdrawals.sort((a, b) => b.timestamp - a.timestamp);
         setWithdrawals(withdrawals);
       }
     })();
   }, [
-    withdrawalsInitiated.loading,
-    withdrawalsInitiated.error,
-    withdrawalsInitiated.data,
-    withdrawalsInitiated,
-    withdrawalConfirmations.loading,
-    withdrawalConfirmations.error,
-    withdrawalConfirmations.data,
     setWithdrawals,
     currentTableView,
+    withdrawalsInitiated.data,
+    withdrawalConfirmations.data,
+    sentMessagesFromL2.data,
   ]);
 
   // Fetches SNX price every 10 seconds
@@ -158,7 +140,6 @@ function App() {
     <>
       <Container maxW={'1400px'} py={4}>
         <Box d="flex" justifyContent="flex-end">
-          <Button onClick={clearCache}>Clear cache</Button>
           <Button borderRadius="100%" ml={4} p={0} onClick={toggleColorMode}>
             {colorMode === 'light' ? '🌜' : '🌞'}
           </Button>
@@ -190,12 +171,12 @@ function App() {
               deposits={deposits}
               withdrawals={withdrawals}
               setCurrentTableView={setCurrentTableView}
-              loadMore={() => setCurrentWithdrawalPage(count => count + 1)}
+              loadMore={() => setCurrentWithdrawalIndex(count => count + 1)}
               // isLoadingMore={isLoadingMore}
               price={snxPrice}
               refreshTransactions={refreshTransactions}
               isRefreshing={isRefreshing}
-              moreWithdrawalsToLoad={l2FromBlockNum > 0}
+              // moreWithdrawalsToLoad={l2FromBlockNum > 0}
               // moreDepositsToLoad={l1FromBlockNum > SNX_BRIDGE_DEPLOY_BLOCK_NUMBER}
               withdrawalsLoading={withdrawalsInitiated.loading}
               depositsLoading={depositsLoading}

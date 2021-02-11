@@ -1,9 +1,28 @@
 specVersion: 0.0.2
 description: Indexes Optimism SNX withdrawals
-repository: https://github.com/ethereum-optimism/snx-transer-tracker/packages/l2-subgraph
+repository: https://github.com/ethereum-optimism/token-transfer-tracker/packages/l2-subgraph
 schema:
   file: ./schema.graphql
 dataSources:
+  - kind: ethereum/contract
+    name: OVM_CrossDomainMessenger
+    network: optimism
+    source:
+      address: "0x4200000000000000000000000000000000000007"
+      abi: OVM_CrossDomainMessenger
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - SentMessage
+      abis:
+        - name: OVM_CrossDomainMessenger
+          file: ./abis/OVM_CrossDomainMessenger.json
+      eventHandlers:
+        - event: SentMessage(bytes)
+          handler: handleSentMessage
+      file: ./src/mapping.ts
   - kind: ethereum/contract
     name: SynthetixBridgeToBase
     network: optimism

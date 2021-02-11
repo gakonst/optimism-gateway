@@ -78,3 +78,52 @@ export class Withdrawal extends Entity {
     this.set("amount", Value.fromBigInt(value));
   }
 }
+
+export class SentMessage extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save SentMessage entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save SentMessage entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("SentMessage", id.toString(), this);
+  }
+
+  static load(id: string): SentMessage | null {
+    return store.get("SentMessage", id) as SentMessage | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get txHash(): string {
+    let value = this.get("txHash");
+    return value.toString();
+  }
+
+  set txHash(value: string) {
+    this.set("txHash", Value.fromString(value));
+  }
+
+  get message(): Bytes {
+    let value = this.get("message");
+    return value.toBytes();
+  }
+
+  set message(value: Bytes) {
+    this.set("message", Value.fromBytes(value));
+  }
+}

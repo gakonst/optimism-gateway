@@ -6,7 +6,7 @@
     "create-local": "graph create ethereum-optimism/snx-subgraph --node http://127.0.0.1:8020",
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --access-token add1bfeb575b43d098cde3b5d2691619 --node https://api.staging.thegraph.com/deploy/ --ipfs https://api.staging.thegraph.com/ipfs/ k-ho/optimism-snx-withdrawals subgraph.yaml",
+    "deploy": "graph deploy --access-token 58bbc53b59b44369912d6fed2d6a672f --node https://api.staging.thegraph.com/deploy/ --ipfs https://api.staging.thegraph.com/ipfs/ gigamesh/ovm-token-transfers subgraph.yaml",
     "deploy-local": "graph deploy ethereum-optimism/snx-subgraph --ipfs http://localhost:5001 --node http://127.0.0.1:8020"
   },
   "devDependencies": {

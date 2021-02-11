@@ -59,4 +59,13 @@ export class ReceivedWithdrawal extends Entity {
   set timestamp(value: i32) {
     this.set("timestamp", Value.fromI32(value));
   }
+
+  get msgHash(): string {
+    let value = this.get("msgHash");
+    return value.toString();
+  }
+
+  set msgHash(value: string) {
+    this.set("msgHash", Value.fromString(value));
+  }
 }
