@@ -103,9 +103,7 @@ function App() {
           tx.timestamp = tx.timestamp * 1000;
 
           const sentMessage = sentMessagesFromL2.data.sentMessages.find(msg => msg.txHash === tx.layer2Hash);
-          tx.message = sentMessage.message;
-
-          const l1MsgHash = ethers.utils.solidityKeccak256(['bytes'], [tx.message]);
+          const l1MsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
 
           const l1Data = withdrawalConfirmations.data.receivedWithdrawals.find(msg => msg.msgHash === l1MsgHash);
           tx.layer1Hash = l1Data?.hash;
