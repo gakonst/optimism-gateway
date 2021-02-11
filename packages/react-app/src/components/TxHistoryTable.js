@@ -18,6 +18,7 @@ import {
   Button,
   Text,
   Box,
+  Flex,
   Link as ExternalLink,
   useToast,
   useMediaQuery,
@@ -87,7 +88,7 @@ function TxHistoryTable({
         <TabPanels>
           {[deposits, withdrawals].map((history, index) => (
             <TabPanel px={'0'} key={index} overflow="auto">
-              {withdrawalsLoading || !history || !price ? (
+              {withdrawalsLoading || !history ? (
                 <Center pt="100px" maxW="200px" mx="auto">
                   <Box d="flex" flexDir="column" alignItems="center">
                     <Spinner h="150px" w="150px" />
@@ -111,7 +112,7 @@ function TxHistoryTable({
                         <Th minW="30px" w="6%" px={'0 1rem'}>
                           Amount
                         </Th>
-                        <Th minW="30px" w="6%" px={'0 1rem'}>
+                        <Th minW="30px" w="8%" px={'0 1rem'}>
                           Value
                         </Th>
                         <Th w="12%" px={'0 1rem'} onClick={changeDateFormat} cursor="pointer">
@@ -154,7 +155,16 @@ function TxHistoryTable({
                             <Td overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" px={'0 1rem'}>
                               {formatNumber((+row.amount).toFixed(3))}
                             </Td>
-                            <Td px={'0 1rem'}>{formatUSD(row.amount * price)}</Td>
+                            <Td px={'0 1rem'}>
+                              {price ? (
+                                formatUSD(row.amount * price)
+                              ) : (
+                                <Flex alignItems="center">
+                                  <Spinner size="xs" mr={2} />
+                                  Getting price
+                                </Flex>
+                              )}
+                            </Td>
                             <Td px={'0 1rem'} onClick={changeDateFormat} cursor="pointer">
                               {dateFormat === 'MOMENT'
                                 ? DateTime.fromMillis(row.timestamp).toFormat('D, t ZZZZ')
