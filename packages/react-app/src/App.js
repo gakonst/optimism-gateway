@@ -100,6 +100,7 @@ function App() {
           tx.amount = ethers.utils.formatEther(tx.amount);
           tx.address = tx.account;
           tx.layer2Hash = tx.hash;
+          tx.timestamp = tx.timestamp * 1000;
 
           const sentMessage = sentMessagesFromL2.data.sentMessages.find(msg => msg.txHash === tx.layer2Hash);
           tx.message = sentMessage.message;
@@ -108,7 +109,7 @@ function App() {
 
           const l1Data = withdrawalConfirmations.data.receivedWithdrawals.find(msg => msg.msgHash === l1MsgHash);
           tx.layer1Hash = l1Data?.hash;
-          tx.otherLayerTimestamp = l1Data?.timestamp;
+          tx.otherLayerTimestamp = l1Data && l1Data.timestamp * 1000;
           delete tx.hash;
           return tx;
         });

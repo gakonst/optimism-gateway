@@ -157,16 +157,16 @@ function TxHistoryTable({
                             <Td px={'0 1rem'}>{formatUSD(row.amount * price)}</Td>
                             <Td px={'0 1rem'} onClick={changeDateFormat} cursor="pointer">
                               {dateFormat === 'MOMENT'
-                                ? DateTime.fromMillis(row.timestamp * 1000).toFormat('D, t ZZZZ')
+                                ? DateTime.fromMillis(row.timestamp).toFormat('D, t ZZZZ')
                                 : DateTime.local()
-                                    .minus((Date.now() - row.timestamp) * 1000)
+                                    .minus(Date.now() - row.timestamp)
                                     .toRelative({ round: false })}
                             </Td>
                             <Td px={'0 1rem'} textAlign="left">
                               {row.layer1Hash ? (
                                 <>
                                   <Dot color="#75cc74" />
-                                  Completed {DateTime.fromMillis(row.otherLayerTimestamp * 1000).toFormat('D, t ZZZZ')}
+                                  Completed {DateTime.fromMillis(row.otherLayerTimestamp).toFormat('D, t ZZZZ')}
                                 </>
                               ) : isRefreshing ? (
                                 <Spinner size="xs" />
