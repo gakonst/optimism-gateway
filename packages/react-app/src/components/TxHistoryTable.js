@@ -35,7 +35,7 @@ function TxHistoryTable({
   deposits,
   withdrawals,
   setCurrentTableView,
-  loadMore,
+  fetchMoreTransactions,
   isLoadingMore,
   price,
   isRefreshing,
@@ -66,21 +66,27 @@ function TxHistoryTable({
     setDateFormat(dateFormat === 'MOMENT' ? 'DURATION' : 'MOMENT');
   };
 
-  const AddressWrapper = ({ children, row }) => {
+  const AddressWrapper = ({ children, tx }) => {
     return address ? (
       <CopyToClipboard text={address} onCopy={copiedToClipboard}>
         {children}
       </CopyToClipboard>
     ) : (
-      <Link to={`/a/${row.address}`}>{children}</Link>
+      <Link to={`/a/${tx.address}`}>{children}</Link>
     );
   };
 
   return (
     <>
-      <Tabs variant="soft-rounded" mt={8} mb={16} defaultIndex={1} onChange={setCurrentTableView}>
+      <Tabs
+        variant="soft-rounded"
+        mt={8}
+        mb={16}
+        // defaultIndex={1}
+        onChange={setCurrentTableView}
+      >
         <TabList>
-          <Tab fontSize="0.8rem" mr={4} isDisabled cursor="not-allowed">
+          <Tab fontSize="0.8rem" mr={4}>
             DEPOSITS
           </Tab>
           <Tab fontSize="0.8rem">WITHDRAWALS</Tab>
@@ -89,12 +95,9 @@ function TxHistoryTable({
           {[deposits, withdrawals].map((history, index) => (
             <TabPanel px={'0'} key={index} overflow="auto">
               {withdrawalsLoading || !history ? (
-                <Center pt="100px" maxW="200px" mx="auto">
+                <Center pt="50px" maxW="200px" mx="auto">
                   <Box d="flex" flexDir="column" alignItems="center">
                     <Spinner h="150px" w="150px" />
-                    <Text mt={12} textAlign="center">
-                      Fetching withdrawals...
-                    </Text>
                   </Box>
                 </Center>
               ) : !history.length ? (
@@ -142,22 +145,22 @@ function TxHistoryTable({
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {history.map((row, i) => {
+                      {history.map((tx, i) => {
                         return (
                           <Tr key={i}>
                             <Td overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" px={'0 1rem'}>
-                              <AddressWrapper row={row}>
+                              <AddressWrapper tx={tx}>
                                 <Box as="span" cursor="pointer">
-                                  {row.address}
+                                  {tx.address}
                                 </Box>
                               </AddressWrapper>
                             </Td>
                             <Td overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" px={'0 1rem'}>
-                              {formatNumber((+row.amount).toFixed(3))}
+                              {formatNumber((+tx.amount).toFixed(3))}
                             </Td>
                             <Td px={'0 1rem'}>
                               {price ? (
-                                formatUSD(row.amount * price)
+                                formatUSD(tx.amount * price)
                               ) : (
                                 <Flex alignItems="center">
                                   <Spinner size="xs" mr={2} />
@@ -167,22 +170,20 @@ function TxHistoryTable({
                             </Td>
                             <Td px={'0 1rem'} onClick={changeDateFormat} cursor="pointer">
                               {dateFormat === 'MOMENT'
-                                ? DateTime.fromMillis(row.timestamp).toFormat('D, t ZZZZ')
+                                ? DateTime.fromMillis(tx.timestamp).toFormat('D, t ZZZZ')
                                 : DateTime.local()
-                                    .minus(Date.now() - row.timestamp)
+                                    .minus(Date.now() - tx.timestamp)
                                     .toRelative({ round: false })}
                             </Td>
                             <Td px={'0 1rem'} textAlign="left">
-                              {row.layer1Hash ? (
+                              {tx.layer1Hash && tx.otherLayerTimestamp ? (
                                 <>
                                   <Dot color="#75cc74" />
-                                  Completed {DateTime.fromMillis(row.otherLayerTimestamp).toFormat('D, t ZZZZ')}
+                                  Completed {DateTime.fromMillis(tx.otherLayerTimestamp).toFormat('D, t ZZZZ')}
                                 </>
                               ) : isRefreshing ? (
                                 <Spinner size="xs" />
-                              ) : DateTime.fromMillis(row.timestamp)
-                                  .plus({ days: 7 })
-                                  .toMillis() < Date.now() ? (
+                              ) : tx.awaitingRelay ? (
                                 <>
                                   <Dot color="#efefa2" />
                                   Awaiting relay
@@ -191,15 +192,15 @@ function TxHistoryTable({
                                 <>
                                   <Dot color="#f46969" />
                                   Pending until{' '}
-                                  {DateTime.fromMillis(row.timestamp)
+                                  {DateTime.fromMillis(tx.timestamp)
                                     .plus({ days: 7 })
                                     .toFormat('D, t ZZZZ')}
                                 </>
                               )}
                             </Td>
                             <Td px={'0 1rem'} textAlign="center">
-                              {row.layer1Hash ? (
-                                <ExternalLink href={`https://etherscan.io/tx/${row.layer1Hash}`} isExternal>
+                              {tx.layer1Hash ? (
+                                <ExternalLink href={`https://etherscan.io/tx/${tx.layer1Hash}`} isExternal>
                                   <ExternalLinkIcon />
                                 </ExternalLink>
                               ) : (
@@ -207,9 +208,9 @@ function TxHistoryTable({
                               )}
                             </Td>
                             <Td px={'0 1rem'} textAlign="right">
-                              {row.layer2Hash && (
+                              {tx.layer2Hash && (
                                 <ExternalLink
-                                  href={`https://mainnet-l2-explorer.surge.sh/tx/${row.layer2Hash}`}
+                                  href={`https://mainnet-l2-explorer.surge.sh/tx/${tx.layer2Hash}`}
                                   isExternal
                                 >
                                   <ExternalLinkIcon />
@@ -222,19 +223,16 @@ function TxHistoryTable({
                     </Tbody>
                   </Table>
                   <Center pt={8}>
-                    {(index === 0 && moreDepositsToLoad) ||
-                      (index === 1 && moreWithdrawalsToLoad && (
-                        <Button d="flex" mx="auto" mt={8} onClick={() => loadMore(index)}>
-                          {isLoadingMore ? (
-                            <>
-                              Loading more
-                              <Spinner ml={2} size="sm" />
-                            </>
-                          ) : (
-                            'Load more'
-                          )}
-                        </Button>
-                      ))}
+                    <Button d="flex" mx="auto" mt={8} onClick={() => fetchMoreTransactions(index)}>
+                      {isLoadingMore ? (
+                        <>
+                          Loading more
+                          <Spinner ml={2} size="sm" />
+                        </>
+                      ) : (
+                        'Next page'
+                      )}
+                    </Button>
                   </Center>
                 </>
               )}

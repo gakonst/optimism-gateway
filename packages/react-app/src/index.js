@@ -2,14 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter } from 'react-router-dom';
 import { ChakraProvider, ColorModeScript, extendTheme } from '@chakra-ui/react';
-import { ApolloProvider } from '@apollo/react-hooks';
+import { ApolloProvider } from '@apollo/client';
 import clients from './graphql/clients';
 import './index.css';
 import App from './App';
 
 const theme = extendTheme({
   config: {
-    initialColorMode: 'light',
+    initialColorMode: 'dark',
     useSystemColorMode: false,
   },
   styles: {
@@ -23,24 +23,23 @@ const theme = extendTheme({
         },
       },
       h1: {
-        fontWeight: '400 !important',
+        fontWeight: '500 !important',
         marginTop: '2rem',
       },
       h2: {
-        fontWeight: '400 !important',
         margin: '3.5rem auto 3rem',
       },
       h3: {
         marginTop: '2rem',
-        fontWeight: '200 !important',
+        fontWeight: '500 !important',
       },
       h4: {
         marginTop: '2rem',
-        fontWeight: '200 !important',
+        fontWeight: '500 !important',
       },
       h5: {
         marginTop: '2rem',
-        fontWeight: '200 !important',
+        fontWeight: '500 !important',
       },
     },
   },

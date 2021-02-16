@@ -8,6 +8,13 @@ type Withdrawal @entity {
 
 type SentMessage @entity {
   id: ID!
+  timestamp: Int!
   txHash: String!
   message: Bytes!
+}
+
+type Stats @entity {
+  id: ID!
+  count: Int!
+  total: BigInt!
 }

@@ -4,3 +4,11 @@ type ReceivedWithdrawal @entity {
   timestamp: Int!
   msgHash: String!
 }
+
+type Deposit @entity {
+  id: ID!
+  hash: String!
+  timestamp: Int!
+  account: Bytes!
+  amount: BigInt!
+}

@@ -109,6 +109,15 @@ export class SentMessage extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get timestamp(): i32 {
+    let value = this.get("timestamp");
+    return value.toI32();
+  }
+
+  set timestamp(value: i32) {
+    this.set("timestamp", Value.fromI32(value));
+  }
+
   get txHash(): string {
     let value = this.get("txHash");
     return value.toString();
@@ -125,5 +134,54 @@ export class SentMessage extends Entity {
 
   set message(value: Bytes) {
     this.set("message", Value.fromBytes(value));
+  }
+}
+
+export class Stats extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save Stats entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save Stats entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("Stats", id.toString(), this);
+  }
+
+  static load(id: string): Stats | null {
+    return store.get("Stats", id) as Stats | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get count(): i32 {
+    let value = this.get("count");
+    return value.toI32();
+  }
+
+  set count(value: i32) {
+    this.set("count", Value.fromI32(value));
+  }
+
+  get total(): BigInt {
+    let value = this.get("total");
+    return value.toBigInt();
+  }
+
+  set total(value: BigInt) {
+    this.set("total", Value.fromBigInt(value));
   }
 }
