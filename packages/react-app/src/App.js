@@ -127,11 +127,10 @@ function App() {
   };
 
   React.useEffect(() => {
-    console.log('currentTableView', currentTableView);
     (async () => {
       if (
         currentTableView === views.DEPOSITS &&
-        depositsInitiated.data
+        depositsInitiated?.data?.deposits
         // withdrawalConfirmations.data &&
         // sentMessagesFromL2.data
       ) {
@@ -224,6 +223,7 @@ function App() {
     }, 10000);
   }, []);
 
+  // console.log(new Date(withdrawalsInitiated?.data?.withdrawals[0].timestamp * 1000));
   // console.log(depositsInitiated?.data && depositsInitiated.data.deposits[0]);
   // console.log(withdrawalStats?.data);
   return (

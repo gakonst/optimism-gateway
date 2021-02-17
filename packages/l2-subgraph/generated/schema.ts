@@ -12,6 +12,171 @@ import {
   BigDecimal
 } from "@graphprotocol/graph-ts";
 
+export class SentMessage extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save SentMessage entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save SentMessage entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("SentMessage", id.toString(), this);
+  }
+
+  static load(id: string): SentMessage | null {
+    return store.get("SentMessage", id) as SentMessage | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get timestamp(): i32 {
+    let value = this.get("timestamp");
+    return value.toI32();
+  }
+
+  set timestamp(value: i32) {
+    this.set("timestamp", Value.fromI32(value));
+  }
+
+  get txHash(): string {
+    let value = this.get("txHash");
+    return value.toString();
+  }
+
+  set txHash(value: string) {
+    this.set("txHash", Value.fromString(value));
+  }
+
+  get message(): Bytes {
+    let value = this.get("message");
+    return value.toBytes();
+  }
+
+  set message(value: Bytes) {
+    this.set("message", Value.fromBytes(value));
+  }
+}
+
+export class ReceivedMessage extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save ReceivedMessage entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save ReceivedMessage entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("ReceivedMessage", id.toString(), this);
+  }
+
+  static load(id: string): ReceivedMessage | null {
+    return store.get("ReceivedMessage", id) as ReceivedMessage | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get hash(): string {
+    let value = this.get("hash");
+    return value.toString();
+  }
+
+  set hash(value: string) {
+    this.set("hash", Value.fromString(value));
+  }
+
+  get timestamp(): i32 {
+    let value = this.get("timestamp");
+    return value.toI32();
+  }
+
+  set timestamp(value: i32) {
+    this.set("timestamp", Value.fromI32(value));
+  }
+
+  get msgHash(): string {
+    let value = this.get("msgHash");
+    return value.toString();
+  }
+
+  set msgHash(value: string) {
+    this.set("msgHash", Value.fromString(value));
+  }
+}
+
+export class Stats extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save Stats entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save Stats entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("Stats", id.toString(), this);
+  }
+
+  static load(id: string): Stats | null {
+    return store.get("Stats", id) as Stats | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get count(): i32 {
+    let value = this.get("count");
+    return value.toI32();
+  }
+
+  set count(value: i32) {
+    this.set("count", Value.fromI32(value));
+  }
+
+  get total(): BigInt {
+    let value = this.get("total");
+    return value.toBigInt();
+  }
+
+  set total(value: BigInt) {
+    this.set("total", Value.fromBigInt(value));
+  }
+}
+
 export class Withdrawal extends Entity {
   constructor(id: string) {
     super();
@@ -76,112 +241,5 @@ export class Withdrawal extends Entity {
 
   set amount(value: BigInt) {
     this.set("amount", Value.fromBigInt(value));
-  }
-}
-
-export class SentMessage extends Entity {
-  constructor(id: string) {
-    super();
-    this.set("id", Value.fromString(id));
-  }
-
-  save(): void {
-    let id = this.get("id");
-    assert(id !== null, "Cannot save SentMessage entity without an ID");
-    assert(
-      id.kind == ValueKind.STRING,
-      "Cannot save SentMessage entity with non-string ID. " +
-        'Considering using .toHex() to convert the "id" to a string.'
-    );
-    store.set("SentMessage", id.toString(), this);
-  }
-
-  static load(id: string): SentMessage | null {
-    return store.get("SentMessage", id) as SentMessage | null;
-  }
-
-  get id(): string {
-    let value = this.get("id");
-    return value.toString();
-  }
-
-  set id(value: string) {
-    this.set("id", Value.fromString(value));
-  }
-
-  get timestamp(): i32 {
-    let value = this.get("timestamp");
-    return value.toI32();
-  }
-
-  set timestamp(value: i32) {
-    this.set("timestamp", Value.fromI32(value));
-  }
-
-  get txHash(): string {
-    let value = this.get("txHash");
-    return value.toString();
-  }
-
-  set txHash(value: string) {
-    this.set("txHash", Value.fromString(value));
-  }
-
-  get message(): Bytes {
-    let value = this.get("message");
-    return value.toBytes();
-  }
-
-  set message(value: Bytes) {
-    this.set("message", Value.fromBytes(value));
-  }
-}
-
-export class Stats extends Entity {
-  constructor(id: string) {
-    super();
-    this.set("id", Value.fromString(id));
-  }
-
-  save(): void {
-    let id = this.get("id");
-    assert(id !== null, "Cannot save Stats entity without an ID");
-    assert(
-      id.kind == ValueKind.STRING,
-      "Cannot save Stats entity with non-string ID. " +
-        'Considering using .toHex() to convert the "id" to a string.'
-    );
-    store.set("Stats", id.toString(), this);
-  }
-
-  static load(id: string): Stats | null {
-    return store.get("Stats", id) as Stats | null;
-  }
-
-  get id(): string {
-    let value = this.get("id");
-    return value.toString();
-  }
-
-  set id(value: string) {
-    this.set("id", Value.fromString(value));
-  }
-
-  get count(): i32 {
-    let value = this.get("count");
-    return value.toI32();
-  }
-
-  set count(value: i32) {
-    this.set("count", Value.fromI32(value));
-  }
-
-  get total(): BigInt {
-    let value = this.get("total");
-    return value.toBigInt();
-  }
-
-  set total(value: BigInt) {
-    this.set("total", Value.fromBigInt(value));
   }
 }

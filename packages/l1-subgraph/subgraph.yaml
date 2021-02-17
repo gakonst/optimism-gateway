@@ -16,13 +16,15 @@ dataSources:
       apiVersion: 0.0.4
       language: wasm/assemblyscript
       entities:
-        - ReceivedWithdrawal
+        - ReceivedMessage
       abis:
         - name: OVM_CrossDomainMessenger
           file: ./abis/OVM_CrossDomainMessenger.json
       eventHandlers:
         - event: RelayedMessage(bytes32)
           handler: handleMessageReceived
+        - event: SentMessage(bytes)
+          handler: handleSentMessage
       file: ./src/mapping.ts
   - kind: ethereum/contract
     name: SynthetixBridgeToOptimism

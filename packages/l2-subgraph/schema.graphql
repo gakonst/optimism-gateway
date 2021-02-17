@@ -1,11 +1,4 @@
-type Withdrawal @entity {
-  id: ID!
-  hash: String!
-  timestamp: Int!
-  account: Bytes!
-  amount: BigInt!
-}
-
+# L2 to L1 message from OVM_L2CrossDomainMessenger
 type SentMessage @entity {
   id: ID!
   timestamp: Int!
@@ -13,8 +6,25 @@ type SentMessage @entity {
   message: Bytes!
 }
 
+# L1 message from OVM_L1CrossDomainMessenger
+type ReceivedMessage @entity {
+  id: ID!
+  hash: String!
+  timestamp: Int!
+  msgHash: String!
+}
+
+# Withdrawal stats singleton
 type Stats @entity {
   id: ID!
   count: Int!
   total: BigInt!
+}
+
+type Withdrawal @entity {
+  id: ID!
+  hash: String!
+  timestamp: Int!
+  account: Bytes!
+  amount: BigInt!
 }

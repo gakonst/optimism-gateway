@@ -12,7 +12,7 @@ import {
   BigDecimal
 } from "@graphprotocol/graph-ts";
 
-export class ReceivedWithdrawal extends Entity {
+export class ReceivedMessage extends Entity {
   constructor(id: string) {
     super();
     this.set("id", Value.fromString(id));
@@ -20,17 +20,17 @@ export class ReceivedWithdrawal extends Entity {
 
   save(): void {
     let id = this.get("id");
-    assert(id !== null, "Cannot save ReceivedWithdrawal entity without an ID");
+    assert(id !== null, "Cannot save ReceivedMessage entity without an ID");
     assert(
       id.kind == ValueKind.STRING,
-      "Cannot save ReceivedWithdrawal entity with non-string ID. " +
+      "Cannot save ReceivedMessage entity with non-string ID. " +
         'Considering using .toHex() to convert the "id" to a string.'
     );
-    store.set("ReceivedWithdrawal", id.toString(), this);
+    store.set("ReceivedMessage", id.toString(), this);
   }
 
-  static load(id: string): ReceivedWithdrawal | null {
-    return store.get("ReceivedWithdrawal", id) as ReceivedWithdrawal | null;
+  static load(id: string): ReceivedMessage | null {
+    return store.get("ReceivedMessage", id) as ReceivedMessage | null;
   }
 
   get id(): string {
@@ -134,5 +134,63 @@ export class Deposit extends Entity {
 
   set amount(value: BigInt) {
     this.set("amount", Value.fromBigInt(value));
+  }
+}
+
+export class SentMessage extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save SentMessage entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save SentMessage entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("SentMessage", id.toString(), this);
+  }
+
+  static load(id: string): SentMessage | null {
+    return store.get("SentMessage", id) as SentMessage | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get timestamp(): i32 {
+    let value = this.get("timestamp");
+    return value.toI32();
+  }
+
+  set timestamp(value: i32) {
+    this.set("timestamp", Value.fromI32(value));
+  }
+
+  get txHash(): string {
+    let value = this.get("txHash");
+    return value.toString();
+  }
+
+  set txHash(value: string) {
+    this.set("txHash", Value.fromString(value));
+  }
+
+  get message(): Bytes {
+    let value = this.get("message");
+    return value.toBytes();
+  }
+
+  set message(value: Bytes) {
+    this.set("message", Value.fromBytes(value));
   }
 }

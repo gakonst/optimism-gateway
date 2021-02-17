@@ -92,15 +92,15 @@ function TxHistoryTable({
           <Tab fontSize="0.8rem">WITHDRAWALS</Tab>
         </TabList>
         <TabPanels>
-          {[deposits, withdrawals].map((history, index) => (
+          {[deposits, withdrawals].map((transactions, index) => (
             <TabPanel px={'0'} key={index} overflow="auto">
-              {withdrawalsLoading || !history ? (
+              {withdrawalsLoading || !transactions ? (
                 <Center pt="50px" maxW="200px" mx="auto">
                   <Box d="flex" flexDir="column" alignItems="center">
                     <Spinner h="150px" w="150px" />
                   </Box>
                 </Center>
-              ) : !history.length ? (
+              ) : !transactions.length ? (
                 <Text textAlign="center" mt="100px">
                   No transactions found
                 </Text>
@@ -145,7 +145,7 @@ function TxHistoryTable({
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {history.map((tx, i) => {
+                      {transactions.map((tx, i) => {
                         return (
                           <Tr key={i}>
                             <Td overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" px={'0 1rem'}>
