@@ -16,7 +16,7 @@ export function buildQuery(action, lastTimestamp = 0) {
     case actions.GET_DEPOSITS:
       return gql`
         {
-          deposits(first: 100, orderBy: timestamp, orderDirection: desc, where: { timestamp_gt: ${lastTimestamp} }) {
+          deposits(first: 50, orderBy: timestamp, orderDirection: desc, where: { timestamp_gt: ${lastTimestamp} }) {
             account
             amount
             timestamp
@@ -27,7 +27,7 @@ export function buildQuery(action, lastTimestamp = 0) {
     case actions.GET_WITHDRAWALS:
       return gql`
         {
-          withdrawals(first: 100, orderBy: timestamp, orderDirection: desc) {
+          withdrawals(first: 50, orderBy: timestamp, orderDirection: desc) {
             account
             amount
             timestamp
@@ -38,7 +38,7 @@ export function buildQuery(action, lastTimestamp = 0) {
     case actions.GET_SENT_MESSAGES:
       return gql`
         {
-          sentMessages(first: 100, orderBy: timestamp, orderDirection: desc) {
+          sentMessages(first: 50, orderBy: timestamp, orderDirection: desc) {
             txHash
             message
           }
@@ -47,7 +47,7 @@ export function buildQuery(action, lastTimestamp = 0) {
     case actions.GET_WITHDRAWAL_CONFIRMATIONS:
       return gql`
         {
-          receivedWithdrawals(first: 100, orderBy: timestamp, orderDirection: desc) {
+          receivedWithdrawals(first: 50, orderBy: timestamp, orderDirection: desc) {
             hash
             timestamp
             msgHash
@@ -57,7 +57,7 @@ export function buildQuery(action, lastTimestamp = 0) {
     case actions.GET_WITHDRAWAL_STATS:
       return gql`
         {
-          stats(id: "STATS_ID") {
+          stats(id: "1") {
             count
             total
           }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useRouteMatch } from 'react-router-dom';
-import TxHistoryTable from './TxHistoryTable';
+import TxHistoryTable from './TxHistory';
 
 export const formatNumber = num => {
   return new Intl.NumberFormat('en-US', { maximumSignificantDigits: 20 }).format(+num);

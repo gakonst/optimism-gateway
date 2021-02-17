@@ -2,6 +2,7 @@ import React from 'react';
 import { Switch, Route, useHistory, useLocation } from 'react-router-dom';
 import DateTime from 'luxon/src/datetime.js';
 import { ethers } from 'ethers';
+import JSBI from 'jsbi';
 import {
   Box,
   Button,
@@ -20,7 +21,7 @@ import {
 } from '@chakra-ui/react';
 import { useQuery } from '@apollo/client';
 import SearchInput from './components/SearchInput';
-import TxHistoryTable from './components/TxHistoryTable';
+import TxHistoryTable from './components/TxHistory';
 import AddressView from './components/AddressView';
 import clients from './graphql/clients';
 import { actions, buildQuery } from './graphql/subgraph';
@@ -28,6 +29,9 @@ import { formatUSD, formatNumber } from './helpers';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import { abis, addresses } from '@project/contracts';
+import { panels } from './constants';
+
+import { Fraction } from '@uniswap/sdk';
 
 // test address: 0x5A34F25040ba6E12daeA0512D4D2a0043ECc9292
 
@@ -36,11 +40,6 @@ const l2Provider = new JsonRpcProvider(`https://mainnet.optimism.io`);
 
 const snxL1Contract = new Contract(addresses.l1.SNX.token, abis.SynthetixL1Token, l1Provider);
 const snxL2Contract = new Contract(addresses.l2.SNX.token, abis.SynthetixL2Token, l2Provider);
-
-const views = {
-  DEPOSITS: 0,
-  WITHDRAWALS: 1,
-};
 
 const ITEMS_PER_PAGE = 200;
 
@@ -53,10 +52,13 @@ function App() {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [deposits, setDeposits] = React.useState();
   const [withdrawals, setWithdrawals] = React.useState();
+  const [tokensPendingWithdrawal, setTokensPendingWithdrawal] = React.useState();
+  const [$valuePendingWithdrawal, set$ValuePendingWithdrawal] = React.useState();
   const [l1TotalAmt, setl1TotalAmt] = React.useState();
   const [l2TotalAmt, setl2TotalAmt] = React.useState();
   const [l1VsL2Difference, setL1VsL2Difference] = React.useState(0);
   const [depositsLoading, setDepositsLoading] = React.useState(false);
+  const [withdrawalsLoading, setWithdrawalsLoading] = React.useState(false);
   const [depositsPageIdx, setDepositsPageIdx] = React.useState(0);
   const [withdrawalsPageIdx, setWithdrawalsPageIdx] = React.useState(0);
   const depositsInitiated = useQuery(buildQuery(actions.GET_DEPOSITS), {
@@ -99,7 +101,7 @@ function App() {
   };
 
   const fetchMoreTransactions = async viewIdx => {
-    if (viewIdx === views.DEPOSITS) {
+    if (viewIdx === panels.DEPOSITS) {
       const moreDeposits = await depositsInitiated.fetchMore({
         variables: {
           lastTimestamp: depositsInitiated.data.deposits[depositsInitiated.data.deposits.length - 1].timestamp,
@@ -127,17 +129,26 @@ function App() {
   };
 
   React.useEffect(() => {
+    if (currentTableView === panels.DEPOSITS) {
+      setDepositsLoading(!deposits);
+    } else if (currentTableView === panels.WITHDRAWALS) {
+      setWithdrawalsLoading(!withdrawals);
+    }
+  }, [currentTableView, deposits, depositsLoading, withdrawals]);
+
+  React.useEffect(() => {
     (async () => {
       if (
-        currentTableView === views.DEPOSITS &&
-        depositsInitiated?.data?.deposits
+        currentTableView === panels.DEPOSITS &&
+        !deposits &&
+        depositsInitiated.data
         // withdrawalConfirmations.data &&
         // sentMessagesFromL2.data
       ) {
-        let deposits = depositsInitiated.data.deposits.map(tx => {
+        let deposits = depositsInitiated.data.deposits.map(rawTx => {
+          const tx = { ...rawTx };
           tx.amount = ethers.utils.formatEther(tx.amount);
           tx.address = tx.account;
-          console.log(tx.hash, tx.timestamp);
           tx.layer1Hash = tx.hash;
           tx.timestamp = tx.timestamp * 1000;
           // const sentMessage = sentMessagesFromL1.data.sentMessages.find(msg => msg.txHash === tx.layer2Hash);
@@ -145,25 +156,25 @@ function App() {
           // const l2Data = withdrawalConfirmations.data.receivedWithdrawals.find(msg => msg.msgHash === l2MsgHash);
           // tx.layer2Hash = l2Data?.hash;
           // tx.otherLayerTimestamp = l2Data && l2Data.timestamp * 1000;
-          delete tx.hash;
           return tx;
         });
-        console.log(deposits);
         deposits.sort((a, b) => b.timestamp - a.timestamp);
         setDeposits(deposits);
       }
     })();
-  }, [currentTableView, depositsInitiated.data]);
+  }, [currentTableView, deposits, depositsInitiated.data]);
 
   React.useEffect(() => {
     (async () => {
       if (
-        currentTableView === views.WITHDRAWALS &&
+        currentTableView === panels.WITHDRAWALS &&
+        !withdrawals &&
         withdrawalsInitiated.data &&
         withdrawalConfirmations.data &&
         sentMessagesFromL2.data
       ) {
-        let withdrawals = withdrawalsInitiated.data.withdrawals.map(tx => {
+        let withdrawals = withdrawalsInitiated.data.withdrawals.map(rawTx => {
+          const tx = { ...rawTx };
           tx.amount = ethers.utils.formatEther(tx.amount);
           tx.address = tx.account;
           tx.layer2Hash = tx.hash;
@@ -191,6 +202,7 @@ function App() {
     withdrawalsInitiated.data,
     withdrawalConfirmations.data,
     sentMessagesFromL2.data,
+    withdrawals,
   ]);
 
   React.useEffect(() => {
@@ -223,9 +235,19 @@ function App() {
     }, 10000);
   }, []);
 
-  // console.log(new Date(withdrawalsInitiated?.data?.withdrawals[0].timestamp * 1000));
-  // console.log(depositsInitiated?.data && depositsInitiated.data.deposits[0]);
-  // console.log(withdrawalStats?.data);
+  React.useEffect(() => {
+    if (withdrawalStats?.data?.stats) {
+      let total = new Fraction(withdrawalStats?.data?.stats.total);
+      total = total.divide((1e18).toString()).toFixed(2);
+      setTokensPendingWithdrawal(total);
+      set$ValuePendingWithdrawal(formatUSD(total * price));
+    }
+  }, [withdrawalStats, price]);
+
+  // const withdrawalTotal =
+  //   withdrawalStats?.data &&
+  //   price &&
+  //   formatNumber((+ethers.utils.formatEther(withdrawalStats.data.stats.total)).toFixed(2));
   return (
     <>
       <Container maxW={'1400px'} py={4}>
@@ -253,15 +275,15 @@ function App() {
                 </Tr>
               </Thead>
               <Tbody>
-                {/* <Tr>
+                <Tr>
                   <Td pl={0}>Pending withdrawals:</Td>
                   <Td textAlign="right" px={1}>
-                    {withdrawalStats.pendingAmt || <Spinner size="xs" />}
+                    {tokensPendingWithdrawal || <Spinner size="xs" />}
                   </Td>
                   <Td textAlign="right" pr={0}>
-                    {withdrawalStats.pending$Total || <Spinner size="xs" />}
+                    {$valuePendingWithdrawal || <Spinner size="xs" />}
                   </Td>
-                </Tr> */}
+                </Tr>
 
                 <Tr>
                   <Td pl={0}>SNX L2 Balance:</Td>
@@ -318,6 +340,8 @@ function App() {
             <TxHistoryTable
               deposits={deposits}
               withdrawals={withdrawals}
+              depositsLoading={depositsLoading}
+              withdrawalsLoading={withdrawalsLoading}
               setCurrentTableView={setCurrentTableView}
               fetchMoreTransactions={fetchMoreTransactions}
               // isLoadingMore={isLoadingMore}
@@ -326,8 +350,6 @@ function App() {
               isRefreshing={isRefreshing}
               // moreWithdrawalsToLoad={l2FromBlockNum > 0}
               // moreDepositsToLoad={l1FromBlockNum > SNX_BRIDGE_DEPLOY_BLOCK_NUMBER}
-              withdrawalsLoading={withdrawalsInitiated.loading}
-              depositsLoading={depositsLoading}
             />
           </Route>
         </Switch>
