@@ -51,13 +51,13 @@ export class SentMessage extends Entity {
     this.set("timestamp", Value.fromI32(value));
   }
 
-  get txHash(): string {
-    let value = this.get("txHash");
+  get hash(): string {
+    let value = this.get("hash");
     return value.toString();
   }
 
-  set txHash(value: string) {
-    this.set("txHash", Value.fromString(value));
+  set hash(value: string) {
+    this.set("hash", Value.fromString(value));
   }
 
   get message(): Bytes {
@@ -70,7 +70,7 @@ export class SentMessage extends Entity {
   }
 }
 
-export class ReceivedMessage extends Entity {
+export class RelayedMessage extends Entity {
   constructor(id: string) {
     super();
     this.set("id", Value.fromString(id));
@@ -78,17 +78,17 @@ export class ReceivedMessage extends Entity {
 
   save(): void {
     let id = this.get("id");
-    assert(id !== null, "Cannot save ReceivedMessage entity without an ID");
+    assert(id !== null, "Cannot save RelayedMessage entity without an ID");
     assert(
       id.kind == ValueKind.STRING,
-      "Cannot save ReceivedMessage entity with non-string ID. " +
+      "Cannot save RelayedMessage entity with non-string ID. " +
         'Considering using .toHex() to convert the "id" to a string.'
     );
-    store.set("ReceivedMessage", id.toString(), this);
+    store.set("RelayedMessage", id.toString(), this);
   }
 
-  static load(id: string): ReceivedMessage | null {
-    return store.get("ReceivedMessage", id) as ReceivedMessage | null;
+  static load(id: string): RelayedMessage | null {
+    return store.get("RelayedMessage", id) as RelayedMessage | null;
   }
 
   get id(): string {

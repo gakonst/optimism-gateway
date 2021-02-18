@@ -1,6 +1,7 @@
 import React from 'react';
 import { Switch, Route, useHistory, useLocation } from 'react-router-dom';
 import DateTime from 'luxon/src/datetime.js';
+import { Fraction } from '@uniswap/sdk';
 import { ethers } from 'ethers';
 import { Box, Button, Container, useColorMode, Heading, useToast, Flex } from '@chakra-ui/react';
 import { useQuery } from '@apollo/client';
@@ -9,20 +10,11 @@ import TxHistoryTable from './components/TxHistory';
 import StatsTable from './components/StatsTable';
 import AddressView from './components/AddressView';
 import clients from './graphql/clients';
-import {
-  GET_DEPOSITS,
-  GET_WITHDRAWALS,
-  GET_SENT_MESSAGES,
-  GET_WITHDRAWAL_CONFIRMATIONS,
-  GET_STATS,
-} from './graphql/subgraph';
-import { formatUSD, formatNumber } from './helpers';
+import { GET_DEPOSITS, GET_WITHDRAWALS, GET_SENT_MESSAGES, GET_RELAYED_MESSAGES, GET_STATS } from './graphql/subgraph';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import { abis, addresses } from '@project/contracts';
 import { panels } from './constants';
-
-import { Fraction } from '@uniswap/sdk';
 
 // test address: 0x5A34F25040ba6E12daeA0512D4D2a0043ECc9292
 
@@ -55,14 +47,26 @@ function App() {
   const [withdrawalsPageIdx, setWithdrawalsPageIdx] = React.useState(0);
   const depositsInitiated = useQuery(GET_DEPOSITS, {
     client: clients.l1,
+    notifyOnNetworkStatusChange: true,
+    variables: {
+      timestampFrom: 0,
+    },
   });
-  const withdrawalConfirmations = useQuery(GET_WITHDRAWAL_CONFIRMATIONS, { client: clients.l1 });
   const withdrawalsInitiated = useQuery(GET_WITHDRAWALS, {
     client: clients.l2,
+    notifyOnNetworkStatusChange: true,
+    variables: {
+      timestampFrom: 0,
+    },
+  });
+  const sentMessagesFromL1 = useQuery(GET_SENT_MESSAGES, {
+    client: clients.l1,
   });
   const sentMessagesFromL2 = useQuery(GET_SENT_MESSAGES, {
     client: clients.l2,
   });
+  const relayedMessagesOnL1 = useQuery(GET_RELAYED_MESSAGES, { client: clients.l1 });
+  const relayedMessagesOnL2 = useQuery(GET_RELAYED_MESSAGES, { client: clients.l2 });
   const depositStats = useQuery(GET_STATS, {
     client: clients.l1,
   });
@@ -97,30 +101,80 @@ function App() {
 
   const fetchMoreTransactions = async viewIdx => {
     if (viewIdx === panels.DEPOSITS) {
-      const moreDeposits = await depositsInitiated.fetchMore({
+      const timestampFrom = depositsInitiated.data.deposits[depositsInitiated.data.deposits.length - 1].timestamp;
+      const more = await depositsInitiated.fetchMore({
         variables: {
-          lastTimestamp: depositsInitiated.data.deposits[depositsInitiated.data.deposits.length - 1].timestamp,
+          timestampFrom,
+        },
+        updateQuery: (prev, { fetchMoreResult }) => {
+          return Object.assign(prev, fetchMoreResult);
         },
       });
-      console.log(moreDeposits);
+      const deposits = await processDeposits({
+        rawDeposits: more.data.deposits,
+        sentMessagesFromL1: sentMessagesFromL1.data.sentMessages,
+        relayedMessagesOnL2: relayedMessagesOnL2.data.relayedMessages,
+      });
+      setDeposits(deposits);
     } else {
-      const newIndex = withdrawalsPageIdx + 1;
-      setWithdrawalsPageIdx(newIndex);
-
-      console.log(newIndex * ITEMS_PER_PAGE);
-
-      const more = await withdrawalConfirmations.fetchMore({
+      const timestampFrom =
+        withdrawalsInitiated.data.withdrawals[withdrawalsInitiated.data.withdrawals.length - 1].timestamp;
+      const more = await withdrawalsInitiated.fetchMore({
         variables: {
-          offset: newIndex * ITEMS_PER_PAGE,
+          timestampFrom,
+        },
+        updateQuery: (prev, { fetchMoreResult }) => {
+          return Object.assign(prev, fetchMoreResult);
         },
       });
-      console.log(more?.data?.receivedMessages[0]);
-      withdrawalsInitiated.fetchMore({
-        variables: {
-          offset: newIndex * ITEMS_PER_PAGE,
-        },
+      const withdrawals = await processWithdrawals({
+        rawWithdrawals: more.data.withdrawals,
+        sentMessagesFromL2: sentMessagesFromL2.data.sentMessages,
+        relayedMessagesOnL1: relayedMessagesOnL1.data.relayedMessages,
       });
+      console.log(withdrawals);
+      setWithdrawals(withdrawals);
     }
+  };
+
+  const processDeposits = async ({ rawDeposits, sentMessagesFromL1 }) => {
+    let deposits = rawDeposits.map(rawTx => {
+      const tx = { ...rawTx };
+      tx.amount = ethers.utils.formatEther(tx.amount);
+      tx.address = tx.account;
+      tx.layer1Hash = tx.hash;
+      tx.timestamp = tx.timestamp * 1000;
+      // const sentMessage = sentMessagesFromL1.data.sentMessages.find(msg => msg.hash === tx.layer2Hash);
+      // const l2MsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
+      // const l2Data = relayedMessagesOnL1.data.relayedMessages.find(msg => msg.msgHash === l2MsgHash);
+      // tx.layer2Hash = l2Data?.hash;
+      // tx.otherLayerTimestamp = l2Data && l2Data.timestamp * 1000;
+      return tx;
+    });
+    return deposits.sort((a, b) => b.timestamp - a.timestamp);
+  };
+
+  const processWithdrawals = async ({ rawWithdrawals, sentMessagesFromL2, relayedMessagesOnL1 }) => {
+    let withdrawals = rawWithdrawals.map(rawTx => {
+      const tx = { ...rawTx };
+      tx.amount = ethers.utils.formatEther(tx.amount);
+      tx.address = tx.account;
+      tx.layer2Hash = tx.hash;
+      tx.timestamp = tx.timestamp * 1000;
+      const sentMessage = sentMessagesFromL2.find(msg => msg.hash === tx.layer2Hash);
+      const l1MsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
+      const l1Data = relayedMessagesOnL1.find(msg => msg.msgHash === l1MsgHash);
+      tx.layer1Hash = l1Data?.hash;
+      tx.awaitingRelay =
+        !tx.layer1Hash &&
+        DateTime.fromMillis(tx.timestamp)
+          .plus({ days: 7 })
+          .toMillis() < Date.now();
+      tx.otherLayerTimestamp = l1Data && l1Data.timestamp * 1000;
+      delete tx.hash;
+      return tx;
+    });
+    return withdrawals.sort((a, b) => b.timestamp - a.timestamp);
   };
 
   React.useEffect(() => {
@@ -131,33 +185,26 @@ function App() {
     }
   }, [currentTableView, deposits, depositsLoading, withdrawals]);
 
-  React.useEffect(() => {
-    (async () => {
-      if (
-        currentTableView === panels.DEPOSITS &&
-        !deposits &&
-        depositsInitiated.data
-        // withdrawalConfirmations.data &&
-        // sentMessagesFromL2.data
-      ) {
-        let deposits = depositsInitiated.data.deposits.map(rawTx => {
-          const tx = { ...rawTx };
-          tx.amount = ethers.utils.formatEther(tx.amount);
-          tx.address = tx.account;
-          tx.layer1Hash = tx.hash;
-          tx.timestamp = tx.timestamp * 1000;
-          // const sentMessage = sentMessagesFromL1.data.sentMessages.find(msg => msg.txHash === tx.layer2Hash);
-          // const l2MsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
-          // const l2Data = withdrawalConfirmations.data.receivedMessages.find(msg => msg.msgHash === l2MsgHash);
-          // tx.layer2Hash = l2Data?.hash;
-          // tx.otherLayerTimestamp = l2Data && l2Data.timestamp * 1000;
-          return tx;
-        });
-        deposits.sort((a, b) => b.timestamp - a.timestamp);
-        setDeposits(deposits);
-      }
-    })();
-  }, [currentTableView, deposits, depositsInitiated.data]);
+  // React.useEffect(() => {
+  //   (async () => {
+  //     if (currentTableView === panels.DEPOSITS && !deposits && depositsInitiated.data && relayedMessagesOnL2.data) {
+  //       const deposits = await processDeposits({
+  //         rawDeposits: depositsInitiated.data.deposits,
+  //         sentMessagesFromL1: sentMessagesFromL1.data.sentMessages,
+  //         relayedMessagesOnL2: relayedMessagesOnL2.data.relayedMessages,
+  //       });
+  //       setDeposits(deposits);
+  //     }
+  //   })();
+  // }, [
+  //   currentTableView,
+  //   deposits,
+  //   depositsInitiated.data,
+  //   relayedMessagesOnL2,
+  //   relayedMessagesOnL2.data,
+  //   relayedMessagesOnL2.data.relayedMessages,
+  //   sentMessagesFromL1.data.sentMessages,
+  // ]);
 
   React.useEffect(() => {
     (async () => {
@@ -165,29 +212,14 @@ function App() {
         currentTableView === panels.WITHDRAWALS &&
         !withdrawals &&
         withdrawalsInitiated.data &&
-        withdrawalConfirmations.data &&
+        relayedMessagesOnL1.data &&
         sentMessagesFromL2.data
       ) {
-        let withdrawals = withdrawalsInitiated.data.withdrawals.map(rawTx => {
-          const tx = { ...rawTx };
-          tx.amount = ethers.utils.formatEther(tx.amount);
-          tx.address = tx.account;
-          tx.layer2Hash = tx.hash;
-          tx.timestamp = tx.timestamp * 1000;
-          const sentMessage = sentMessagesFromL2.data.sentMessages.find(msg => msg.txHash === tx.layer2Hash);
-          const l1MsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
-          const l1Data = withdrawalConfirmations.data.receivedMessages.find(msg => msg.msgHash === l1MsgHash);
-          tx.layer1Hash = l1Data?.hash;
-          tx.awaitingRelay =
-            !tx.layer1Hash &&
-            DateTime.fromMillis(tx.timestamp)
-              .plus({ days: 7 })
-              .toMillis() < Date.now();
-          tx.otherLayerTimestamp = l1Data && l1Data.timestamp * 1000;
-          delete tx.hash;
-          return tx;
+        const withdrawals = await processWithdrawals({
+          rawWithdrawals: withdrawalsInitiated.data.withdrawals,
+          sentMessagesFromL2: sentMessagesFromL2.data.sentMessages,
+          relayedMessagesOnL1: relayedMessagesOnL1.data.relayedMessages,
         });
-        withdrawals.sort((a, b) => b.timestamp - a.timestamp);
         setWithdrawals(withdrawals);
       }
     })();
@@ -195,7 +227,7 @@ function App() {
     setWithdrawals,
     currentTableView,
     withdrawalsInitiated.data,
-    withdrawalConfirmations.data,
+    relayedMessagesOnL1.data,
     sentMessagesFromL2.data,
     withdrawals,
   ]);
@@ -244,17 +276,12 @@ function App() {
 
   React.useEffect(() => {
     if (depositStats?.data?.stats) {
-      console.log(depositStats?.data?.stats);
       let total = new Fraction(depositStats?.data?.stats.total);
       total = total.divide((1e18).toString()).toFixed(2);
       setTokensPendingDeposit(total);
     }
   }, [depositStats, price]);
 
-  // const withdrawalTotal =
-  //   withdrawalStats?.data &&
-  //   price &&
-  //   formatNumber((+ethers.utils.formatEther(withdrawalStats.data.stats.total)).toFixed(2));
   return (
     <>
       <Container maxW={'1400px'} py={4}>
@@ -266,7 +293,7 @@ function App() {
         <Heading as="h1" size="xl" textAlign="center" mb={16} mt={16}>
           OΞ SNX Tracker
         </Heading>
-        <Flex mb={16} w="600px">
+        <Flex mb={16} w="600px" mx="auto">
           {/* <SearchInput handleAddressSearch={handleAddressSearch} /> */}
           <StatsTable
             price={price}

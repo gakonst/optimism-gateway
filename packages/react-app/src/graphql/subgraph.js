@@ -1,8 +1,8 @@
 import { gql } from 'apollo-boost';
 
 export const GET_DEPOSITS = gql`
-  {
-    deposits(first: 50, orderBy: timestamp, orderDirection: desc) {
+  query deposits($timestampFrom: Int!) {
+    deposits(first: 50, orderBy: timestamp, orderDirection: desc, where: { timestamp_gt: $timestampFrom }) {
       account
       amount
       timestamp
@@ -13,16 +13,16 @@ export const GET_DEPOSITS = gql`
 
 export const GET_SENT_MESSAGES = gql`
   {
-    sentMessages(first: 50, orderBy: timestamp, orderDirection: desc) {
-      txHash
+    sentMessages(first: 1000, orderBy: timestamp, orderDirection: desc) {
+      hash
       message
     }
   }
 `;
 
 export const GET_WITHDRAWALS = gql`
-  {
-    withdrawals(first: 50, orderBy: timestamp, orderDirection: desc) {
+  query withdrawals($timestampFrom: Int!) {
+    withdrawals(first: 50, orderBy: timestamp, orderDirection: desc, where: { timestamp_gt: $timestampFrom }) {
       account
       amount
       timestamp
@@ -31,9 +31,9 @@ export const GET_WITHDRAWALS = gql`
   }
 `;
 
-export const GET_WITHDRAWAL_CONFIRMATIONS = gql`
+export const GET_RELAYED_MESSAGES = gql`
   {
-    receivedMessages(first: 50, orderBy: timestamp, orderDirection: desc) {
+    relayedMessages(first: 1000, orderBy: timestamp, orderDirection: desc) {
       hash
       timestamp
       msgHash

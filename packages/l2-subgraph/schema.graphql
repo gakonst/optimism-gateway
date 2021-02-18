@@ -2,12 +2,12 @@
 type SentMessage @entity {
   id: ID!
   timestamp: Int!
-  txHash: String!
+  hash: String!
   message: Bytes!
 }
 
 # L1 message from OVM_L1CrossDomainMessenger
-type ReceivedMessage @entity {
+type RelayedMessage @entity {
   id: ID!
   hash: String!
   timestamp: Int!

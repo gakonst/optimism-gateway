@@ -2,13 +2,13 @@ import { BigInt } from '@graphprotocol/graph-ts';
 import { WithdrawalInitiated as WithdrawalInitiatedEvent } from '../generated/SynthetixBridgeToBase/SynthetixBridgeToBase';
 import {
   SentMessage as SentMessageEvent,
-  RelayedMessage,
+  RelayedMessage as RelayedMessageEvent,
 } from '../generated/OVM_CrossDomainMessenger/OVM_CrossDomainMessenger';
-import { Withdrawal, SentMessage, ReceivedMessage, Stats } from '../generated/schema';
+import { Withdrawal, SentMessage, RelayedMessage, Stats } from '../generated/schema';
 
 // OVM cross domain messenger
-export function handleMessageReceived(event: RelayedMessage): void {
-  const msgReceived = new ReceivedMessage(event.params.msgHash.toHex());
+export function handleMessageRelayed(event: RelayedMessageEvent): void {
+  const msgReceived = new RelayedMessage(event.params.msgHash.toHex());
   msgReceived.hash = event.transaction.hash.toHex();
   msgReceived.timestamp = event.block.timestamp.toI32();
   msgReceived.msgHash = event.params.msgHash.toHex();
@@ -17,7 +17,7 @@ export function handleMessageReceived(event: RelayedMessage): void {
 export function handleSentMessage(event: SentMessageEvent): void {
   const sentMessage = new SentMessage(event.transaction.hash.toHex() + '-' + event.logIndex.toString());
   sentMessage.timestamp = event.block.timestamp.toI32();
-  sentMessage.txHash = event.transaction.hash.toHex();
+  sentMessage.hash = event.transaction.hash.toHex();
   sentMessage.message = event.params.message;
   sentMessage.save();
 }

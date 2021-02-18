@@ -71,7 +71,7 @@ function TxHistoryPanel({
   return (
     <>
       {isLoading || !transactions ? (
-        <Center pt="50px" maxW="200px" mx="auto">
+        <Center py="50px" maxW="200px" mx="auto">
           <Box d="flex" flexDir="column" alignItems="center">
             <Spinner h="150px" w="150px" />
           </Box>
