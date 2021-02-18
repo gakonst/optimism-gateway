@@ -1,8 +1,23 @@
+# L1 to L2 message from OVM_L1CrossDomainMessenger
+type SentMessage @entity {
+  id: ID!
+  timestamp: Int!
+  txHash: String!
+  message: Bytes!
+}
+
 type ReceivedMessage @entity {
   id: ID!
   hash: String!
   timestamp: Int!
   msgHash: String!
+}
+
+# Deposit stats singleton
+type Stats @entity {
+  id: ID!
+  count: Int!
+  total: BigInt!
 }
 
 type Deposit @entity {
@@ -11,12 +26,4 @@ type Deposit @entity {
   timestamp: Int!
   account: Bytes!
   amount: BigInt!
-}
-
-# L1 to L2 message from OVM_L1CrossDomainMessenger
-type SentMessage @entity {
-  id: ID!
-  timestamp: Int!
-  txHash: String!
-  message: Bytes!
 }

@@ -1,9 +1,10 @@
+import { BigInt } from '@graphprotocol/graph-ts';
 import {
   RelayedMessage,
   SentMessage as SentMessageEvent,
 } from '../generated/OVM_CrossDomainMessenger/OVM_CrossDomainMessenger';
 import { Deposit as DepositEvent } from '../generated/SynthetixBridgeToOptimism/SynthetixBridgeToOptimism';
-import { ReceivedMessage, Deposit, SentMessage } from '../generated/schema';
+import { ReceivedMessage, Deposit, SentMessage, Stats } from '../generated/schema';
 // import
 
 // OVM cross domain messenger
@@ -25,6 +26,18 @@ export function handleSentMessage(event: SentMessageEvent): void {
 
 // SNX deposit contract
 export function handleDeposit(event: DepositEvent): void {
+  const STATS_ID = '1';
+  // create a stats entity if this is the first event, else update the existing one
+  let stats = Stats.load(STATS_ID);
+  if (stats == null) {
+    stats = new Stats(STATS_ID);
+    stats.count = 0;
+    stats.total = BigInt.fromI32(0);
+  }
+  stats.count = stats.count + 1;
+  stats.total.plus(event.params.amount);
+  stats.save();
+
   const deposit = new Deposit(event.transaction.hash.toHex());
   deposit.timestamp = event.block.timestamp.toI32();
   deposit.hash = event.transaction.hash.toHex();

@@ -32,8 +32,8 @@ export function handleWithdrawal(event: WithdrawalInitiatedEvent): void {
     stats.count = 0;
     stats.total = BigInt.fromI32(0);
   }
-  stats.count = event.transaction.index.toI32();
-  stats.total.plus(event.params.amount as BigInt);
+  stats.count = stats.count + 1;
+  stats.total.plus(event.params.amount);
   stats.save();
 
   const withdrawal = new Withdrawal(event.transaction.hash.toHex() + '-' + event.logIndex.toString());
