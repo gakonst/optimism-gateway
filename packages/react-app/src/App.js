@@ -10,7 +10,15 @@ import TxHistoryTable from './components/TxHistory';
 import StatsTable from './components/StatsTable';
 import AddressView from './components/AddressView';
 import clients from './graphql/clients';
-import { GET_DEPOSITS, GET_WITHDRAWALS, GET_SENT_MESSAGES, GET_RELAYED_MESSAGES, GET_STATS } from './graphql/subgraph';
+import {
+  getDeposits,
+  getWithdrawals,
+  GET_DEPOSITS,
+  GET_WITHDRAWALS,
+  GET_SENT_MESSAGES,
+  GET_RELAYED_MESSAGES,
+  GET_STATS,
+} from './graphql/subgraph';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import { abis, addresses } from '@project/contracts';
@@ -23,8 +31,6 @@ const l2Provider = new JsonRpcProvider(`https://mainnet.optimism.io`);
 
 const snxL1Contract = new Contract(addresses.l1.SNX.token, abis.SynthetixL1Token, l1Provider);
 const snxL2Contract = new Contract(addresses.l2.SNX.token, abis.SynthetixL2Token, l2Provider);
-
-const ITEMS_PER_PAGE = 200;
 
 function App() {
   const { colorMode, toggleColorMode } = useColorMode();
@@ -45,19 +51,13 @@ function App() {
   const [withdrawalsLoading, setWithdrawalsLoading] = React.useState(false);
   const [depositsPageIdx, setDepositsPageIdx] = React.useState(0);
   const [withdrawalsPageIdx, setWithdrawalsPageIdx] = React.useState(0);
-  const depositsInitiated = useQuery(GET_DEPOSITS, {
+  const depositsInitiated = useQuery(getDeposits(), {
     client: clients.l1,
     notifyOnNetworkStatusChange: true,
-    variables: {
-      timestampFrom: 0,
-    },
   });
-  const withdrawalsInitiated = useQuery(GET_WITHDRAWALS, {
+  const withdrawalsInitiated = useQuery(getWithdrawals(), {
     client: clients.l2,
     notifyOnNetworkStatusChange: true,
-    variables: {
-      timestampFrom: 0,
-    },
   });
   const sentMessagesFromL1 = useQuery(GET_SENT_MESSAGES, {
     client: clients.l1,
@@ -99,43 +99,55 @@ function App() {
     setIsRefreshing(false);
   };
 
-  const fetchMoreTransactions = async viewIdx => {
-    if (viewIdx === panels.DEPOSITS) {
-      const timestampFrom = depositsInitiated.data.deposits[depositsInitiated.data.deposits.length - 1].timestamp;
-      const more = await depositsInitiated.fetchMore({
-        variables: {
-          timestampFrom,
-        },
-        updateQuery: (prev, { fetchMoreResult }) => {
-          return Object.assign(prev, fetchMoreResult);
-        },
-      });
-      const deposits = await processDeposits({
-        rawDeposits: more.data.deposits,
-        sentMessagesFromL1: sentMessagesFromL1.data.sentMessages,
-        relayedMessagesOnL2: relayedMessagesOnL2.data.relayedMessages,
-      });
-      setDeposits(deposits);
-    } else {
-      const timestampFrom =
-        withdrawalsInitiated.data.withdrawals[withdrawalsInitiated.data.withdrawals.length - 1].timestamp;
-      const more = await withdrawalsInitiated.fetchMore({
-        variables: {
-          timestampFrom,
-        },
-        updateQuery: (prev, { fetchMoreResult }) => {
-          return Object.assign(prev, fetchMoreResult);
-        },
-      });
-      const withdrawals = await processWithdrawals({
-        rawWithdrawals: more.data.withdrawals,
-        sentMessagesFromL2: sentMessagesFromL2.data.sentMessages,
-        relayedMessagesOnL1: relayedMessagesOnL1.data.relayedMessages,
-      });
-      console.log(withdrawals);
-      setWithdrawals(withdrawals);
-    }
-  };
+  const fetchTransactions = React.useCallback(
+    async viewIdx => {
+      if (viewIdx === panels.DEPOSITS) {
+        const timestampTo = depositsInitiated.data.deposits[depositsInitiated.data.deposits.length - 1].timestamp;
+        const more = await depositsInitiated.fetchMore({
+          variables: {
+            timestampTo: timestampTo,
+          },
+          query: getDeposits(timestampTo),
+          updateQuery: (prev, { fetchMoreResult }) => {
+            return Object.assign(prev, fetchMoreResult);
+          },
+        });
+        const deposits = await processDeposits({
+          rawDeposits: more.data.deposits,
+          sentMessagesFromL1: sentMessagesFromL1.data.sentMessages,
+          relayedMessagesOnL2: relayedMessagesOnL2.data.relayedMessages,
+        });
+        setDeposits(deposits);
+      } else if (viewIdx === panels.WITHDRAWALS) {
+        const timestampTo =
+          withdrawalsInitiated.data.withdrawals[withdrawalsInitiated.data.withdrawals.length - 1].timestamp;
+        const more = await withdrawalsInitiated.fetchMore({
+          variables: {
+            timestampTo: timestampTo,
+          },
+          query: getWithdrawals(timestampTo),
+          updateQuery: (prev, { fetchMoreResult }) => {
+            return Object.assign(prev, fetchMoreResult);
+          },
+        });
+        console.log(more.data.withdrawals[0]);
+        const withdrawals = await processWithdrawals({
+          rawWithdrawals: more.data.withdrawals,
+          sentMessagesFromL2: sentMessagesFromL2.data.sentMessages,
+          relayedMessagesOnL1: relayedMessagesOnL1.data.relayedMessages,
+        });
+        setWithdrawals(withdrawals);
+      }
+    },
+    [
+      depositsInitiated,
+      withdrawalsInitiated,
+      relayedMessagesOnL1.data,
+      relayedMessagesOnL2.data,
+      sentMessagesFromL1.data,
+      sentMessagesFromL2.data,
+    ]
+  );
 
   const processDeposits = async ({ rawDeposits, sentMessagesFromL1 }) => {
     let deposits = rawDeposits.map(rawTx => {
@@ -185,26 +197,31 @@ function App() {
     }
   }, [currentTableView, deposits, depositsLoading, withdrawals]);
 
-  // React.useEffect(() => {
-  //   (async () => {
-  //     if (currentTableView === panels.DEPOSITS && !deposits && depositsInitiated.data && relayedMessagesOnL2.data) {
-  //       const deposits = await processDeposits({
-  //         rawDeposits: depositsInitiated.data.deposits,
-  //         sentMessagesFromL1: sentMessagesFromL1.data.sentMessages,
-  //         relayedMessagesOnL2: relayedMessagesOnL2.data.relayedMessages,
-  //       });
-  //       setDeposits(deposits);
-  //     }
-  //   })();
-  // }, [
-  //   currentTableView,
-  //   deposits,
-  //   depositsInitiated.data,
-  //   relayedMessagesOnL2,
-  //   relayedMessagesOnL2.data,
-  //   relayedMessagesOnL2.data.relayedMessages,
-  //   sentMessagesFromL1.data.sentMessages,
-  // ]);
+  React.useEffect(() => {
+    (async () => {
+      if (
+        currentTableView === panels.DEPOSITS &&
+        !deposits &&
+        depositsInitiated.data &&
+        relayedMessagesOnL2.data &&
+        sentMessagesFromL1.data
+      ) {
+        const deposits = await processDeposits({
+          rawDeposits: depositsInitiated.data.deposits,
+          sentMessagesFromL1: sentMessagesFromL1.data.sentMessages,
+          relayedMessagesOnL2: relayedMessagesOnL2.data.relayedMessages,
+        });
+        setDeposits(deposits);
+      }
+    })();
+  }, [
+    currentTableView,
+    deposits,
+    depositsInitiated.data,
+    relayedMessagesOnL2,
+    relayedMessagesOnL2.data,
+    sentMessagesFromL1.data,
+  ]);
 
   React.useEffect(() => {
     (async () => {
@@ -329,7 +346,7 @@ function App() {
               depositsLoading={depositsLoading}
               withdrawalsLoading={withdrawalsLoading}
               setCurrentTableView={setCurrentTableView}
-              fetchMore={fetchMoreTransactions}
+              fetchMore={fetchTransactions}
               // isLoadingMore={isLoadingMore}
               price={price}
               refreshTransactions={refreshTransactions}

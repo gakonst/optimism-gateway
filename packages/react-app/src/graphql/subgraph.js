@@ -1,8 +1,12 @@
 import { gql } from 'apollo-boost';
 
-export const GET_DEPOSITS = gql`
-  query deposits($timestampFrom: Int!) {
-    deposits(first: 50, orderBy: timestamp, orderDirection: desc, where: { timestamp_gt: $timestampFrom }) {
+export const getDeposits = timestampTo => {
+  console.log('timestampTo', timestampTo);
+  const queryString = `
+  ${timestampTo ? `query deposits($timestampTo: Int!)` : ''} {
+    deposits(first: 50, orderBy: timestamp, orderDirection: desc ${
+      timestampTo ? `, where: { timestamp_lt: $timestampTo }` : ''
+    }) {
       account
       amount
       timestamp
@@ -10,23 +14,53 @@ export const GET_DEPOSITS = gql`
     }
   }
 `;
+  return gql(queryString);
+};
+
+export const getWithdrawals = timestampTo => {
+  console.log('timestampTo', timestampTo);
+  const queryString = `
+  ${timestampTo ? `query deposits($timestampTo: Int!)` : ''} {
+    withdrawals(first: 50, orderBy: timestamp, orderDirection: desc ${
+      timestampTo ? `, where: { timestamp_lt: $timestampTo }` : ''
+    }) {
+      account
+      amount
+      timestamp
+      hash
+    }
+  }
+`;
+  return gql(queryString);
+};
+
+// export const GET_DEPOSITS = gql`
+//   {
+//     deposits(first: 50, orderBy: timestamp, orderDirection: desc) {
+//       account
+//       amount
+//       timestamp
+//       hash
+//     }
+//   }
+// `;
+
+// export const GET_WITHDRAWALS = gql`
+//   {
+//     withdrawals(first: 50, orderBy: timestamp, orderDirection: desc) {
+//       account
+//       amount
+//       timestamp
+//       hash
+//     }
+//   }
+// `;
 
 export const GET_SENT_MESSAGES = gql`
   {
     sentMessages(first: 1000, orderBy: timestamp, orderDirection: desc) {
       hash
       message
-    }
-  }
-`;
-
-export const GET_WITHDRAWALS = gql`
-  query withdrawals($timestampFrom: Int!) {
-    withdrawals(first: 50, orderBy: timestamp, orderDirection: desc, where: { timestamp_gt: $timestampFrom }) {
-      account
-      amount
-      timestamp
-      hash
     }
   }
 `;
