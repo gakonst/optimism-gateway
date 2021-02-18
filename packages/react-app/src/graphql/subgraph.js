@@ -1,7 +1,6 @@
 import { gql } from 'apollo-boost';
 
 export const getDeposits = timestampTo => {
-  console.log('timestampTo', timestampTo);
   const queryString = `
   ${timestampTo ? `query deposits($timestampTo: Int!)` : ''} {
     deposits(first: 50, orderBy: timestamp, orderDirection: desc ${
@@ -18,7 +17,6 @@ export const getDeposits = timestampTo => {
 };
 
 export const getWithdrawals = timestampTo => {
-  console.log('timestampTo', timestampTo);
   const queryString = `
   ${timestampTo ? `query deposits($timestampTo: Int!)` : ''} {
     withdrawals(first: 50, orderBy: timestamp, orderDirection: desc ${
@@ -34,31 +32,9 @@ export const getWithdrawals = timestampTo => {
   return gql(queryString);
 };
 
-// export const GET_DEPOSITS = gql`
-//   {
-//     deposits(first: 50, orderBy: timestamp, orderDirection: desc) {
-//       account
-//       amount
-//       timestamp
-//       hash
-//     }
-//   }
-// `;
-
-// export const GET_WITHDRAWALS = gql`
-//   {
-//     withdrawals(first: 50, orderBy: timestamp, orderDirection: desc) {
-//       account
-//       amount
-//       timestamp
-//       hash
-//     }
-//   }
-// `;
-
 export const GET_SENT_MESSAGES = gql`
-  {
-    sentMessages(first: 1000, orderBy: timestamp, orderDirection: desc) {
+  query sentMessages($searchHashes: [String!]) {
+    sentMessages(orderBy: timestamp, orderDirection: desc, where: { hash_in: $searchHashes }) {
       hash
       message
     }
@@ -66,8 +42,8 @@ export const GET_SENT_MESSAGES = gql`
 `;
 
 export const GET_RELAYED_MESSAGES = gql`
-  {
-    relayedMessages(first: 1000, orderBy: timestamp, orderDirection: desc) {
+  query relayedMessages($searchHashes: [String!]) {
+    relayedMessages(orderBy: timestamp, orderDirection: desc, where: { msgHash_in: $searchHashes }) {
       hash
       timestamp
       msgHash
