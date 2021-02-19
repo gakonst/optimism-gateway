@@ -1,16 +1,16 @@
 import React from 'react';
-import { Switch, Route, useHistory, useLocation } from 'react-router-dom';
+import { Switch, Route, useHistory } from 'react-router-dom';
 import DateTime from 'luxon/src/datetime.js';
 import { Fraction } from '@uniswap/sdk';
 import { ethers } from 'ethers';
-import { Box, Button, Container, useColorMode, Heading, useToast, Flex } from '@chakra-ui/react';
+import { Box, Container, Heading, useToast, Flex } from '@chakra-ui/react';
 import { useQuery, useLazyQuery } from '@apollo/client';
 import SearchInput from './components/SearchInput';
 import TxHistoryTable from './components/TxHistory';
 import StatsTable from './components/StatsTable';
 import AddressView from './components/AddressView';
 import clients from './graphql/clients';
-import { getDeposits, getWithdrawals, GET_SENT_MESSAGES, GET_RELAYED_MESSAGES, GET_STATS } from './graphql/subgraph';
+import { getDeposits, getWithdrawals, GET_SENT_MESSAGES, GET_RELAYED_MESSAGES } from './graphql/subgraph';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import { abis, addresses } from '@project/contracts';
@@ -22,10 +22,8 @@ const snxL1Contract = new Contract(addresses.l1.SNX.token, abis.SynthetixL1Token
 const snxL2Contract = new Contract(addresses.l2.SNX.token, abis.SynthetixL2Token, l2Provider);
 
 function App() {
-  const { colorMode, toggleColorMode } = useColorMode();
   const history = useHistory();
   const [currentTableView, setCurrentTableView] = React.useState(0);
-  const location = useLocation();
   const [price, setPrice] = React.useState(0);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [deposits, setDeposits] = React.useState();
@@ -35,7 +33,6 @@ function App() {
   const [l1TotalAmt, setl1TotalAmt] = React.useState(null);
   const [l2TotalAmt, setl2TotalAmt] = React.useState(null);
   const [l1VsL2WithdrawalDiff, setl1VsL2WithdrawalDiff] = React.useState(null);
-  const [l1VsL2DepositDiff, setl1VsL2DepositDiff] = React.useState(null);
   const [depositsLoading, setDepositsLoading] = React.useState(false);
   const [withdrawalsLoading, setWithdrawalsLoading] = React.useState(false);
   const depositsInitiated = useQuery(getDeposits(), {
@@ -266,15 +263,6 @@ function App() {
       setl1VsL2WithdrawalDiff(diff.toFixed(2));
     })();
   }, [l1TotalAmt, l2TotalAmt, price, withdrawalAmountPending, withdrawals]);
-
-  React.useEffect(() => {
-    (async () => {
-      if (!deposits || !price || !depositAmountPending) return;
-
-      const diff = +l1TotalAmt - +l2TotalAmt - depositAmountPending;
-      setl1VsL2DepositDiff(diff.toFixed(2));
-    })();
-  }, [deposits, l1TotalAmt, l2TotalAmt, price, depositAmountPending]);
 
   // Force fetches withdrawals on initial page load so stats table can be calculated
   React.useEffect(() => {
