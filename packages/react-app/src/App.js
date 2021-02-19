@@ -116,31 +116,28 @@ function App() {
       const l2SentMsgHashes = currentSentMsgs.map(msgTx => {
         return ethers.utils.solidityKeccak256(['bytes'], [msgTx.message]);
       });
-      console.log(l2SentMsgHashes);
       const currentRelayedMsgs = (
         await relayedMessagesOnL2.fetchMore({
           variables: { searchHashes: l2SentMsgHashes },
         })
       ).data.relayedMessages;
 
-      console.log(currentRelayedMsgs);
-
       let deposits = rawDeposits.map(rawTx => {
         const tx = { ...rawTx };
         tx.amount = ethers.utils.formatEther(tx.amount);
         tx.address = tx.account;
-        tx.layer2Hash = tx.hash;
+        tx.layer1Hash = tx.hash;
         tx.timestamp = tx.timestamp * 1000;
         const sentMessage = currentSentMsgs.find(msgTx => msgTx.hash === tx.hash);
-        const l2MsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
-        const l2Data = currentRelayedMsgs.find(msg => msg.msgHash === l2MsgHash);
-        tx.layer2Hash = l2Data?.hash;
+        const sentMsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
+        const relayedTx = currentRelayedMsgs.find(msg => msg.msgHash === sentMsgHash);
+        tx.layer2Hash = relayedTx?.hash;
         tx.awaitingRelay =
           !tx.layer2Hash &&
           DateTime.fromMillis(tx.timestamp)
             .plus({ days: 7 })
             .toMillis() < Date.now();
-        tx.otherLayerTimestamp = l2Data && l2Data.timestamp * 1000;
+        tx.otherLayerTimestamp = relayedTx && relayedTx.timestamp * 1000;
         delete tx.hash;
         return tx;
       });
@@ -176,15 +173,15 @@ function App() {
         tx.layer2Hash = tx.hash;
         tx.timestamp = tx.timestamp * 1000;
         const sentMessage = currentSentMsgs.find(msgTx => msgTx.hash === tx.hash);
-        const l1MsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
-        const l1Data = currentRelayedMsgs.find(msg => msg.msgHash === l1MsgHash);
-        tx.layer1Hash = l1Data?.hash;
+        const sentMsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
+        const relayedTx = currentRelayedMsgs.find(msg => msg.msgHash === sentMsgHash);
+        tx.layer1Hash = relayedTx?.hash;
         tx.awaitingRelay =
           !tx.layer1Hash &&
           DateTime.fromMillis(tx.timestamp)
             .plus({ days: 7 })
             .toMillis() < Date.now();
-        tx.otherLayerTimestamp = l1Data && l1Data.timestamp * 1000;
+        tx.otherLayerTimestamp = relayedTx && relayedTx.timestamp * 1000;
         delete tx.hash;
         return tx;
       });
@@ -241,9 +238,7 @@ function App() {
         const deposits = await processDeposits(depositsInitiated.data.deposits);
         setDeposits(deposits);
       } else if (currentTableView === panels.WITHDRAWALS && !withdrawals && withdrawalsInitiated.data) {
-        const withdrawals = await processWithdrawals({
-          rawWithdrawals: withdrawalsInitiated.data.withdrawals,
-        });
+        const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
         setWithdrawals(withdrawals);
       }
     })();
@@ -322,14 +317,14 @@ function App() {
         </Heading>
         <Flex mb={16} w="600px" mx="auto">
           {/* <SearchInput handleAddressSearch={handleAddressSearch} /> */}
-          <StatsTable
+          {/* <StatsTable
             price={price}
             tokensPending={currentTableView === panels.WITHDRAWALS ? tokensPendingWithdrawal : tokensPendingDeposit}
             l2TotalAmt={l2TotalAmt}
             l1TotalAmt={l1TotalAmt}
             l1VsL2WithdrawalDiff={l1VsL2WithdrawalDiff}
             transactionType={currentTableView === panels.WITHDRAWALS ? 'withdrawals' : 'deposits'}
-          />
+          /> */}
         </Flex>
         <Switch>
           <Route path="/a/:address">

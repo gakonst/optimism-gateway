@@ -20,6 +20,8 @@ dataSources:
         - name: OVM_CrossDomainMessenger
           file: ./abis/OVM_CrossDomainMessenger.json
       eventHandlers:
+        - event: RelayedMessage(bytes32)
+          handler: handleMessageRelayed
         - event: SentMessage(bytes)
           handler: handleSentMessage
       file: ./src/mapping.ts
