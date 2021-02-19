@@ -14,8 +14,8 @@ type RelayedMessage @entity {
   msgHash: String!
 }
 
-# Withdrawal stats singleton
-type Stats @entity {
+# Withdrawal stats
+type Info @entity {
   id: ID!
   count: Int!
   total: BigInt!

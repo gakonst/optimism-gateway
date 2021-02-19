@@ -128,7 +128,7 @@ export class RelayedMessage extends Entity {
   }
 }
 
-export class Stats extends Entity {
+export class Info extends Entity {
   constructor(id: string) {
     super();
     this.set("id", Value.fromString(id));
@@ -136,17 +136,17 @@ export class Stats extends Entity {
 
   save(): void {
     let id = this.get("id");
-    assert(id !== null, "Cannot save Stats entity without an ID");
+    assert(id !== null, "Cannot save Info entity without an ID");
     assert(
       id.kind == ValueKind.STRING,
-      "Cannot save Stats entity with non-string ID. " +
+      "Cannot save Info entity with non-string ID. " +
         'Considering using .toHex() to convert the "id" to a string.'
     );
-    store.set("Stats", id.toString(), this);
+    store.set("Info", id.toString(), this);
   }
 
-  static load(id: string): Stats | null {
-    return store.get("Stats", id) as Stats | null;
+  static load(id: string): Info | null {
+    return store.get("Info", id) as Info | null;
   }
 
   get id(): string {

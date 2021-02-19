@@ -33,7 +33,7 @@ export function handleWithdrawal(event: WithdrawalInitiatedEvent): void {
     stats.total = BigInt.fromI32(0);
   }
   stats.count = stats.count + 1;
-  stats.total.plus(event.params.amount);
+  stats.total = stats.total.plus(event.params.amount);
   stats.save();
 
   const withdrawal = new Withdrawal(event.transaction.hash.toHex() + '-' + event.logIndex.toString());

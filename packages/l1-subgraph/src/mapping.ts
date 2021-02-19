@@ -35,7 +35,7 @@ export function handleDeposit(event: DepositEvent): void {
     stats.total = BigInt.fromI32(0);
   }
   stats.count = stats.count + 1;
-  stats.total.plus(event.params.amount);
+  stats.total = stats.total.plus(event.params.amount);
   stats.save();
 
   const deposit = new Deposit(event.transaction.hash.toHex());

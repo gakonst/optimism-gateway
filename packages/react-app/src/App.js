@@ -287,20 +287,24 @@ function App() {
   }, []);
 
   React.useEffect(() => {
-    if (withdrawalStats?.data?.stats) {
+    if (withdrawalStats.data?.stats) {
       let total = new Fraction(withdrawalStats?.data?.stats.total);
       total = total.divide((1e18).toString()).toFixed(2);
-      setTokensPendingWithdrawal(total);
+      console.log(total);
+
+      // setTokensPendingWithdrawal(total);
     }
-  }, [price, withdrawalStats]);
+  }, [withdrawalStats.data]);
 
   React.useEffect(() => {
-    if (depositStats?.data?.stats) {
+    if (depositStats.data?.stats) {
       let total = new Fraction(depositStats?.data?.stats.total);
       total = total.divide((1e18).toString()).toFixed(2);
-      setTokensPendingDeposit(total);
+      console.log(total);
+
+      // setTokensPendingDeposit(total);
     }
-  }, [depositStats, price]);
+  }, [depositStats.data]);
 
   // console.log(withdrawalsInitiated?.data?.withdrawals);
 

@@ -13,7 +13,7 @@ type RelayedMessage @entity {
   msgHash: String!
 }
 
-# Deposit stats singleton
+# Deposit stats
 type Stats @entity {
   id: ID!
   count: Int!
