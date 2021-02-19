@@ -184,9 +184,11 @@ function App() {
   );
 
   const fetchTransactions = React.useCallback(
-    async viewIdx => {
+    async (viewIdx, page) => {
       if (viewIdx === panels.DEPOSITS) {
-        const timestampTo = depositsInitiated.data.deposits[depositsInitiated.data.deposits.length - 1].timestamp;
+        const firstTx = depositsInitiated.data.deposits[0];
+        const lastTx = depositsInitiated.data.deposits[depositsInitiated.data.deposits.length - 1];
+        const timestampTo = page === 'prev' ? firstTx.timestamp : lastTx.timestamp;
         const more = await depositsInitiated.fetchMore({
           variables: {
             timestampTo: timestampTo,

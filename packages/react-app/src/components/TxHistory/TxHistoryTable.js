@@ -37,6 +37,7 @@ function TxHistoryPanel({
   refreshTransactions,
   price,
   fetchMore,
+  isInitialPage,
 }) {
   const toast = useToast();
   const [screenMd] = useMediaQuery('(min-width: 800px)');
@@ -196,16 +197,14 @@ function TxHistoryPanel({
               })}
             </Tbody>
           </Table>
-          <Center pt={8}>
-            <Button d="flex" mx="auto" mt={8} onClick={() => fetchMore(panelKey)}>
-              {isLoadingMore ? (
-                <>
-                  Loading more
-                  <Spinner ml={2} size="sm" />
-                </>
-              ) : (
-                'Next page'
-              )}
+          <Center pt={8} w="400px" mx="auto">
+            <Button d="flex" mx="auto" mt={8} onClick={() => fetchMore(panelKey, 'prev')} disabled={isInitialPage}>
+              Prev page
+              {/* <Spinner ml={2} size="sm" /> */}
+            </Button>
+            <Button d="flex" mx="auto" mt={8} onClick={() => fetchMore(panelKey, 'next')}>
+              Next page
+              {/* <Spinner ml={2} size="sm" /> */}
             </Button>
           </Center>
         </>
