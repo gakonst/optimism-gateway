@@ -1768,7 +1768,7 @@
   resolved "https://registry.yarnpkg.com/@emotion/weak-memoize/-/weak-memoize-0.2.5.tgz#8eed982e2ee6f7f4e44c253e12962980791efd46"
   integrity sha512-6U71C2Wp7r5XtFtQzYrW5iKFT67OixrSxjI4MptCHzdSVlgabczzqLe0ZSgnub/5Kp4hSbpDB1tMytZY9pwxxA==
 
-"@eth-optimism/watcher@^0.0.1-alpha.8":
+"@eth-optimism/watcher@^0.0.1-alpha.9":
   version "0.0.1-alpha.9"
   resolved "https://registry.yarnpkg.com/@eth-optimism/watcher/-/watcher-0.0.1-alpha.9.tgz#3a68eb9292acd28cdd589b8275eed3308356b028"
   integrity sha512-FSMinaayA/nTQzSPv21tOUqok8gMfEB1UcIdLJkImt9NUzT4QjhGbrsPH6Q2hBlQkAApgTECMShUYZVMpZ7oOw==

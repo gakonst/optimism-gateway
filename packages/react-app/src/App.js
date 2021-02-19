@@ -1,4 +1,5 @@
 import React from 'react';
+import { Watcher } from '@eth-optimism/watcher';
 import { Switch, Route, useHistory, useLocation } from 'react-router-dom';
 import DateTime from 'luxon/src/datetime.js';
 import { Fraction } from '@uniswap/sdk';
@@ -21,6 +22,16 @@ import { panels } from './constants';
 const l1Provider = new JsonRpcProvider(`https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`);
 const l2Provider = new JsonRpcProvider(`https://mainnet.optimism.io`);
 
+const watcher = new Watcher({
+  l1: {
+    provider: l1Provider,
+    messengerAddress: addresses.l1.messenger,
+  },
+  l2: {
+    provider: l2Provider,
+    messengerAddress: addresses.l2.messenger,
+  },
+});
 const snxL1Contract = new Contract(addresses.l1.SNX.token, abis.SynthetixL1Token, l1Provider);
 const snxL2Contract = new Contract(addresses.l2.SNX.token, abis.SynthetixL2Token, l2Provider);
 
@@ -93,62 +104,91 @@ function App() {
     setIsRefreshing(false);
   };
 
-  const processDeposits = async ({ rawDeposits, sentMessagesFromL1 }) => {
-    let deposits = rawDeposits.map(rawTx => {
-      const tx = { ...rawTx };
-      tx.amount = ethers.utils.formatEther(tx.amount);
-      tx.address = tx.account;
-      tx.layer1Hash = tx.hash;
-      tx.timestamp = tx.timestamp * 1000;
-      // const sentMessage = sentMessagesFromL1.data.sentMessages.find(msg => msg.hash === tx.layer2Hash);
-      // const l2MsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
-      // const l2Data = relayedMessagesOnL1.data.relayedMessages.find(msg => msg.msgHash === l2MsgHash);
-      // tx.layer2Hash = l2Data?.hash;
-      // tx.otherLayerTimestamp = l2Data && l2Data.timestamp * 1000;
-      return tx;
-    });
-    return deposits.sort((a, b) => b.timestamp - a.timestamp);
-  };
+  const processDeposits = React.useCallback(
+    async rawDeposits => {
+      // retrieve relevant messages based on this batch of tx timestamps
+      const depositL1TxHashes = rawDeposits.map(tx => tx.hash);
+      const currentSentMsgs = (
+        await sentMessagesFromL1.fetchMore({
+          variables: { searchHashes: depositL1TxHashes },
+        })
+      ).data.sentMessages;
+      const l2SentMsgHashes = currentSentMsgs.map(msgTx => {
+        return ethers.utils.solidityKeccak256(['bytes'], [msgTx.message]);
+      });
+      console.log(l2SentMsgHashes);
+      const currentRelayedMsgs = (
+        await relayedMessagesOnL2.fetchMore({
+          variables: { searchHashes: l2SentMsgHashes },
+        })
+      ).data.relayedMessages;
+
+      console.log(currentRelayedMsgs);
+
+      let deposits = rawDeposits.map(rawTx => {
+        const tx = { ...rawTx };
+        tx.amount = ethers.utils.formatEther(tx.amount);
+        tx.address = tx.account;
+        tx.layer2Hash = tx.hash;
+        tx.timestamp = tx.timestamp * 1000;
+        const sentMessage = currentSentMsgs.find(msgTx => msgTx.hash === tx.hash);
+        const l2MsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
+        const l2Data = currentRelayedMsgs.find(msg => msg.msgHash === l2MsgHash);
+        tx.layer2Hash = l2Data?.hash;
+        tx.awaitingRelay =
+          !tx.layer2Hash &&
+          DateTime.fromMillis(tx.timestamp)
+            .plus({ days: 7 })
+            .toMillis() < Date.now();
+        tx.otherLayerTimestamp = l2Data && l2Data.timestamp * 1000;
+        delete tx.hash;
+        return tx;
+      });
+      return deposits.sort((a, b) => b.timestamp - a.timestamp);
+    },
+    [relayedMessagesOnL2, sentMessagesFromL1]
+  );
 
   const processWithdrawals = React.useCallback(
-    async ({ rawWithdrawals }) => {
+    async rawWithdrawals => {
       // retrieve relevant messages based on this batch of tx timestamps
-      const withdrawalHashes = rawWithdrawals.map(tx => tx.hash);
+      const withdrawalL2TxHashes = rawWithdrawals.map(tx => tx.hash);
       const currentSentMsgs = (
         await sentMessagesFromL2.fetchMore({
-          variables: { searchHashes: withdrawalHashes },
+          variables: { searchHashes: withdrawalL2TxHashes },
         })
       ).data.sentMessages;
 
-      const l1MsgHashes = currentSentMsgs.map(msgTx => ethers.utils.solidityKeccak256(['bytes'], [msgTx.message]));
-      console.log(l1MsgHashes);
+      const l1SentMsgHashes = currentSentMsgs.map(msgTx => {
+        return ethers.utils.solidityKeccak256(['bytes'], [msgTx.message]);
+      });
+
       const currentRelayedMsgs = (
         await relayedMessagesOnL1.fetchMore({
-          variables: { searchHashes: l1MsgHashes },
+          variables: { searchHashes: l1SentMsgHashes },
         })
       ).data.relayedMessages;
-      console.log(currentRelayedMsgs);
 
-      // let withdrawals = rawWithdrawals.map(rawTx => {
-      //   const tx = { ...rawTx };
-      //   tx.amount = ethers.utils.formatEther(tx.amount);
-      //   tx.address = tx.account;
-      //   tx.layer2Hash = tx.hash;
-      //   tx.timestamp = tx.timestamp * 1000;
-      //   const sentMessage = currentSentMsgs.find(msgTx => msgTx.hash === tx.hash);
-      //   const l1MsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
-      //   const l1Data = relayedMessagesOnL1.find(msg => msg.msgHash === l1MsgHash);
-      //   tx.layer1Hash = l1Data?.hash;
-      //   tx.awaitingRelay =
-      //     !tx.layer1Hash &&
-      //     DateTime.fromMillis(tx.timestamp)
-      //       .plus({ days: 7 })
-      //       .toMillis() < Date.now();
-      //   tx.otherLayerTimestamp = l1Data && l1Data.timestamp * 1000;
-      //   delete tx.hash;
-      //   return tx;
-      // });
-      // return withdrawals.sort((a, b) => b.timestamp - a.timestamp);
+      let withdrawals = rawWithdrawals.map(rawTx => {
+        const tx = { ...rawTx };
+        tx.amount = ethers.utils.formatEther(tx.amount);
+        tx.address = tx.account;
+        tx.layer2Hash = tx.hash;
+        tx.timestamp = tx.timestamp * 1000;
+        const sentMessage = currentSentMsgs.find(msgTx => msgTx.hash === tx.hash);
+        const l1MsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
+        const l1Data = currentRelayedMsgs.find(msg => msg.msgHash === l1MsgHash);
+        tx.layer1Hash = l1Data?.hash;
+        tx.awaitingRelay =
+          !tx.layer1Hash &&
+          DateTime.fromMillis(tx.timestamp)
+            .plus({ days: 7 })
+            .toMillis() < Date.now();
+        tx.otherLayerTimestamp = l1Data && l1Data.timestamp * 1000;
+        delete tx.hash;
+        return tx;
+      });
+      return withdrawals.sort((a, b) => b.timestamp - a.timestamp);
     },
     [relayedMessagesOnL1, sentMessagesFromL2]
   );
@@ -166,11 +206,7 @@ function App() {
             return Object.assign(prev, fetchMoreResult);
           },
         });
-        const deposits = await processDeposits({
-          rawDeposits: more.data.deposits,
-          // sentMessagesFromL1: sentMessagesFromL1.data.sentMessages,
-          // relayedMessagesOnL2: relayedMessagesOnL2.data.relayedMessages,
-        });
+        const deposits = await processDeposits(more.data.deposits);
         setDeposits(deposits);
       } else if (viewIdx === panels.WITHDRAWALS) {
         const timestampTo =
@@ -184,13 +220,11 @@ function App() {
             return Object.assign(prev, fetchMoreResult);
           },
         });
-        const withdrawals = await processWithdrawals({
-          rawWithdrawals: more.data.withdrawals,
-        });
+        const withdrawals = await processWithdrawals(more.data.withdrawals);
         setWithdrawals(withdrawals);
       }
     },
-    [depositsInitiated, withdrawalsInitiated, processWithdrawals]
+    [depositsInitiated, processDeposits, withdrawalsInitiated, processWithdrawals]
   );
 
   React.useEffect(() => {
@@ -203,40 +237,25 @@ function App() {
 
   React.useEffect(() => {
     (async () => {
-      if (
-        currentTableView === panels.DEPOSITS &&
-        !deposits &&
-        depositsInitiated.data &&
-        relayedMessagesOnL2.data &&
-        sentMessagesFromL1.data
-      ) {
-        // const deposits = await processDeposits({
-        //   rawDeposits: depositsInitiated.data.deposits,
-        //   sentMessagesFromL1: sentMessagesFromL1.data.sentMessages,
-        //   relayedMessagesOnL2: relayedMessagesOnL2.data.relayedMessages,
-        // });
+      if (currentTableView === panels.DEPOSITS && !deposits && depositsInitiated.data) {
+        const deposits = await processDeposits(depositsInitiated.data.deposits);
         setDeposits(deposits);
-      }
-    })();
-  }, [
-    currentTableView,
-    deposits,
-    depositsInitiated.data,
-    relayedMessagesOnL2,
-    relayedMessagesOnL2.data,
-    sentMessagesFromL1.data,
-  ]);
-
-  React.useEffect(() => {
-    (async () => {
-      if (currentTableView === panels.WITHDRAWALS && !withdrawals && withdrawalsInitiated.data) {
+      } else if (currentTableView === panels.WITHDRAWALS && !withdrawals && withdrawalsInitiated.data) {
         const withdrawals = await processWithdrawals({
           rawWithdrawals: withdrawalsInitiated.data.withdrawals,
         });
         setWithdrawals(withdrawals);
       }
     })();
-  }, [setWithdrawals, currentTableView, withdrawalsInitiated.data, withdrawals, processWithdrawals]);
+  }, [
+    currentTableView,
+    deposits,
+    depositsInitiated.data,
+    processDeposits,
+    withdrawalsInitiated.data,
+    withdrawals,
+    processWithdrawals,
+  ]);
 
   React.useEffect(() => {
     (async () => {
