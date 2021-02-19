@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Spinner, Table, Thead, Tbody, Td, Tr, Th } from '@chakra-ui/react';
 import { formatUSD, formatNumber } from '../helpers';
 
-function StatsTable({ tokensPending, l2TotalAmt, price, l1TotalAmt, l1VsL2Difference, transactionType }) {
+function StatsTable({ depositAmountPending, withdrawalAmountPending, l2TotalAmt, price, l1TotalAmt, l1VsL2lDiff }) {
   return (
     <Box border="1px solid rgba(255, 255, 255, 0.16)" borderRadius="5px" padding={4}>
       <Table size="sm" variant="unstyled">
@@ -19,15 +19,23 @@ function StatsTable({ tokensPending, l2TotalAmt, price, l1TotalAmt, l1VsL2Differ
         </Thead>
         <Tbody>
           <Tr>
-            <Td pl={0}>Pending {transactionType}:</Td>
+            <Td pl={0}>SNX L1 Balance:</Td>
             <Td textAlign="right" px={1}>
-              {tokensPending || <Spinner size="xs" />}
+              {l1TotalAmt ? formatNumber((+l1TotalAmt).toFixed(2)) : <Spinner size="xs" />}
             </Td>
             <Td textAlign="right" pr={0}>
-              {formatUSD(tokensPending * price) || <Spinner size="xs" />}
+              {price && l1TotalAmt ? formatUSD(price * l1TotalAmt) : <Spinner size="xs" />}
             </Td>
           </Tr>
-
+          <Tr>
+            <Td pl={0}>Pending deposits:</Td>
+            <Td textAlign="right" px={1}>
+              {depositAmountPending || <Spinner size="xs" />}
+            </Td>
+            <Td textAlign="right" pr={0}>
+              {depositAmountPending && price ? formatUSD(depositAmountPending * price) : <Spinner size="xs" />}
+            </Td>
+          </Tr>
           <Tr>
             <Td pl={0}>SNX L2 Balance:</Td>
             <Td textAlign="right" px={1}>
@@ -38,25 +46,23 @@ function StatsTable({ tokensPending, l2TotalAmt, price, l1TotalAmt, l1VsL2Differ
             </Td>
           </Tr>
           <Tr>
-            <Td pl={0}>SNX L1 Balance:</Td>
+            <Td pl={0}>Pending withdrawals:</Td>
             <Td textAlign="right" px={1}>
-              {l1TotalAmt ? formatNumber((+l1TotalAmt).toFixed(2)) : <Spinner size="xs" />}
+              {withdrawalAmountPending || <Spinner size="xs" />}
             </Td>
             <Td textAlign="right" pr={0}>
-              {price && l1TotalAmt ? formatUSD(price * l1TotalAmt) : <Spinner size="xs" />}
+              {withdrawalAmountPending && price ? formatUSD(withdrawalAmountPending * price) : <Spinner size="xs" />}
             </Td>
           </Tr>
-          {Boolean(l1VsL2Difference) && (
-            <Tr>
-              <Td pl={0}>L1 vs L2 difference:</Td>
-              <Td textAlign="right" px={1}>
-                {formatNumber(l1VsL2Difference)}
-              </Td>
-              <Td textAlign="right" pr={0}>
-                {formatUSD(price * l1VsL2Difference)}
-              </Td>
-            </Tr>
-          )}
+          <Tr>
+            <Td pl={0}>L1 vs L2 difference:</Td>
+            <Td textAlign="right" px={1}>
+              {l1VsL2lDiff != null ? formatNumber(+l1VsL2lDiff + 0) : <Spinner size="xs" />}
+            </Td>
+            <Td textAlign="right" pr={0}>
+              {l1VsL2lDiff != null && price ? formatUSD(price * +l1VsL2lDiff + 0) : <Spinner size="xs" />}
+            </Td>
+          </Tr>
         </Tbody>
       </Table>
     </Box>

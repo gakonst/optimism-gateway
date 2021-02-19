@@ -30,16 +30,14 @@ function App() {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [deposits, setDeposits] = React.useState();
   const [withdrawals, setWithdrawals] = React.useState();
-  const [tokensPendingDeposit, setTokensPendingDeposit] = React.useState();
-  const [tokensPendingWithdrawal, setTokensPendingWithdrawal] = React.useState();
-  const [l1TotalAmt, setl1TotalAmt] = React.useState();
-  const [l2TotalAmt, setl2TotalAmt] = React.useState();
-  const [l1VsL2WithdrawalDiff, setl1VsL2WithdrawalDiff] = React.useState(0);
-  const [l1VsL2DepositDiff, setl1VsL2DepositDiff] = React.useState(0);
+  const [depositAmountPending, setDepositAmountPending] = React.useState(null);
+  const [withdrawalAmountPending, setWithdrawalAmountPending] = React.useState(null);
+  const [l1TotalAmt, setl1TotalAmt] = React.useState(null);
+  const [l2TotalAmt, setl2TotalAmt] = React.useState(null);
+  const [l1VsL2WithdrawalDiff, setl1VsL2WithdrawalDiff] = React.useState(null);
+  const [l1VsL2DepositDiff, setl1VsL2DepositDiff] = React.useState(null);
   const [depositsLoading, setDepositsLoading] = React.useState(false);
   const [withdrawalsLoading, setWithdrawalsLoading] = React.useState(false);
-  const [depositsPageIdx, setDepositsPageIdx] = React.useState(0);
-  const [withdrawalsPageIdx, setWithdrawalsPageIdx] = React.useState(0);
   const depositsInitiated = useQuery(getDeposits(), {
     client: clients.l1,
     notifyOnNetworkStatusChange: true,
@@ -58,12 +56,12 @@ function App() {
   });
   const relayedMessagesOnL1 = useQuery(GET_RELAYED_MESSAGES, { client: clients.l1, skip: true });
   const relayedMessagesOnL2 = useQuery(GET_RELAYED_MESSAGES, { client: clients.l2, skip: true });
-  const depositStats = useQuery(GET_STATS, {
-    client: clients.l1,
-  });
-  const withdrawalStats = useQuery(GET_STATS, {
-    client: clients.l2,
-  });
+  // const depositStats = useQuery(GET_STATS, {
+  //   client: clients.l1,
+  // });
+  // const withdrawalStats = useQuery(GET_STATS, {
+  //   client: clients.l2,
+  // });
   const toast = useToast();
 
   /**
@@ -127,12 +125,12 @@ function App() {
         return tx;
       });
       const amountPending = deposits.reduce((total, tx) => {
-        if (tx.layer2Hash) {
+        if (!tx.layer2Hash) {
           total = total.add(tx.amount);
         }
         return total;
       }, new Fraction(0));
-      setTokensPendingDeposit(amountPending.divide((1e18).toString()).toFixed(2));
+      setDepositAmountPending(amountPending.divide((1e18).toString()).toFixed(2));
       return deposits.sort((a, b) => b.timestamp - a.timestamp);
     },
     [relayedMessagesOnL2, sentMessagesFromL1]
@@ -177,12 +175,12 @@ function App() {
         return tx;
       });
       const amountPending = withdrawals.reduce((total, tx) => {
-        if (tx.layer1Hash) {
+        if (!tx.layer1Hash) {
           total = total.add(tx.amount);
         }
         return total;
       }, new Fraction(0));
-      setTokensPendingWithdrawal(amountPending.divide((1e18).toString()).toFixed(2));
+      setWithdrawalAmountPending(amountPending.divide((1e18).toString()).toFixed(2));
       return withdrawals.sort((a, b) => b.timestamp - a.timestamp);
     },
     [relayedMessagesOnL1, sentMessagesFromL2]
@@ -262,15 +260,31 @@ function App() {
 
   React.useEffect(() => {
     (async () => {
-      if (!withdrawals || !price) return;
+      if (!withdrawals || !price || !withdrawalAmountPending) return;
 
-      const pendingAmt = withdrawals.reduce((total, tx) => {
-        return !tx.layer1Hash ? total + +tx.amount : total;
-      }, 0);
-
-      setl1VsL2WithdrawalDiff((+l1TotalAmt - +l2TotalAmt - pendingAmt).toFixed(2));
+      const diff = +l1TotalAmt - +l2TotalAmt - withdrawalAmountPending;
+      setl1VsL2WithdrawalDiff(diff.toFixed(2));
     })();
-  }, [l1TotalAmt, l2TotalAmt, price, withdrawals]);
+  }, [l1TotalAmt, l2TotalAmt, price, withdrawalAmountPending, withdrawals]);
+
+  React.useEffect(() => {
+    (async () => {
+      if (!deposits || !price || !depositAmountPending) return;
+
+      const diff = +l1TotalAmt - +l2TotalAmt - depositAmountPending;
+      setl1VsL2DepositDiff(diff.toFixed(2));
+    })();
+  }, [deposits, l1TotalAmt, l2TotalAmt, price, depositAmountPending]);
+
+  // Force fetches withdrawals on initial page load so stats table can be calculated
+  React.useEffect(() => {
+    (async () => {
+      if (withdrawalsInitiated.data) {
+        const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
+        setWithdrawals(withdrawals);
+      }
+    })();
+  }, [fetchTransactions, processWithdrawals, withdrawalsInitiated.data]);
 
   // Fetches SNX price every 10 seconds
   React.useEffect(() => {
@@ -284,50 +298,24 @@ function App() {
     }, 10000);
   }, []);
 
-  // React.useEffect(() => {
-  //   if (withdrawalStats.data?.stats) {
-  //     let total = new Fraction(withdrawalStats?.data?.stats.total);
-  //     total = total.divide((1e18).toString()).toFixed(2);
-  //     console.log(total);
-
-  //     // setTokensPendingWithdrawal(total);
-  //   }
-  // }, [withdrawalStats.data]);
-
-  // React.useEffect(() => {
-  //   if (depositStats.data?.stats) {
-  //     let total = new Fraction(depositStats?.data?.stats.total);
-  //     total = total.divide((1e18).toString()).toFixed(2);
-  //     console.log(total);
-
-  //     // setTokensPendingDeposit(total);
-  //   }
-  // }, [depositStats.data]);
-
-  // console.log(withdrawalsInitiated?.data?.withdrawals);
-
   return (
     <>
       <Container maxW={'1400px'} py={4}>
-        <Box d="flex" justifyContent="flex-end">
-          {/* <Button borderRadius="100%" ml={4} p={0} onClick={toggleColorMode}>
-            {colorMode === 'light' ? '🌜' : '🌞'}
-          </Button> */}
-        </Box>
-        <Heading as="h1" size="xl" textAlign="center" mb={16} mt={16}>
-          OΞ SNX Tracker
+        <Box d="flex" justifyContent="flex-end"></Box>
+        <Heading as="h1" size="xl" textAlign="center" mb={16} mt={16} fontWeight="300 !important">
+          OΞ Token Tracker | Synthetix (SNX)
         </Heading>
         <Flex mb={16} w="600px" mx="auto">
-          {/* <SearchInput handleAddressSearch={handleAddressSearch} /> */}
           <StatsTable
             price={price}
-            tokensPending={currentTableView === panels.WITHDRAWALS ? tokensPendingWithdrawal : tokensPendingDeposit}
+            depositAmountPending={depositAmountPending}
+            withdrawalAmountPending={withdrawalAmountPending}
             l2TotalAmt={l2TotalAmt}
             l1TotalAmt={l1TotalAmt}
-            l1VsL2WithdrawalDiff={l1VsL2WithdrawalDiff}
-            transactionType={currentTableView === panels.WITHDRAWALS ? 'withdrawals' : 'deposits'}
+            l1VsL2lDiff={l1VsL2WithdrawalDiff}
           />
         </Flex>
+        {/* <SearchInput handleAddressSearch={handleAddressSearch} /> */}
         <Switch>
           <Route path="/a/:address">
             {/* <AddressView

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs, TabList, TabPanels, Tab, TabPanel } from '@chakra-ui/react';
-import Table from './Table';
+import Table from './TxHistoryTable';
 
 function TxHistoryTable({
   deposits,
