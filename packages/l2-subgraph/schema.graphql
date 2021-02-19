@@ -15,7 +15,7 @@ type RelayedMessage @entity {
 }
 
 # Withdrawal stats
-type Info @entity {
+type Stats @entity {
   id: ID!
   count: Int!
   total: BigInt!

@@ -14,6 +14,7 @@ export function handleMessageRelayed(event: RelayedMessageEvent): void {
   msgReceived.msgHash = event.params.msgHash.toHex();
   msgReceived.save();
 }
+
 export function handleSentMessage(event: SentMessageEvent): void {
   const sentMessage = new SentMessage(event.transaction.hash.toHex() + '-' + event.logIndex.toString());
   sentMessage.timestamp = event.block.timestamp.toI32();

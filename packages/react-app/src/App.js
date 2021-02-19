@@ -1,5 +1,4 @@
 import React from 'react';
-import { Watcher } from '@eth-optimism/watcher';
 import { Switch, Route, useHistory, useLocation } from 'react-router-dom';
 import DateTime from 'luxon/src/datetime.js';
 import { Fraction } from '@uniswap/sdk';
@@ -17,21 +16,8 @@ import { Contract } from '@ethersproject/contracts';
 import { abis, addresses } from '@project/contracts';
 import { panels } from './constants';
 
-// test address: 0x5A34F25040ba6E12daeA0512D4D2a0043ECc9292
-
 const l1Provider = new JsonRpcProvider(`https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`);
 const l2Provider = new JsonRpcProvider(`https://mainnet.optimism.io`);
-
-const watcher = new Watcher({
-  l1: {
-    provider: l1Provider,
-    messengerAddress: addresses.l1.messenger,
-  },
-  l2: {
-    provider: l2Provider,
-    messengerAddress: addresses.l2.messenger,
-  },
-});
 const snxL1Contract = new Contract(addresses.l1.SNX.token, abis.SynthetixL1Token, l1Provider);
 const snxL2Contract = new Contract(addresses.l2.SNX.token, abis.SynthetixL2Token, l2Provider);
 
@@ -113,18 +99,17 @@ function App() {
           variables: { searchHashes: depositL1TxHashes },
         })
       ).data.sentMessages;
-      const l2SentMsgHashes = currentSentMsgs.map(msgTx => {
+      const sentMsgHashes = currentSentMsgs.map(msgTx => {
         return ethers.utils.solidityKeccak256(['bytes'], [msgTx.message]);
       });
       const currentRelayedMsgs = (
         await relayedMessagesOnL2.fetchMore({
-          variables: { searchHashes: l2SentMsgHashes },
+          variables: { searchHashes: sentMsgHashes },
         })
       ).data.relayedMessages;
 
       let deposits = rawDeposits.map(rawTx => {
         const tx = { ...rawTx };
-        tx.amount = ethers.utils.formatEther(tx.amount);
         tx.address = tx.account;
         tx.layer1Hash = tx.hash;
         tx.timestamp = tx.timestamp * 1000;
@@ -141,6 +126,13 @@ function App() {
         delete tx.hash;
         return tx;
       });
+      const amountPending = deposits.reduce((total, tx) => {
+        if (tx.layer2Hash) {
+          total = total.add(tx.amount);
+        }
+        return total;
+      }, new Fraction(0));
+      setTokensPendingDeposit(amountPending.divide((1e18).toString()).toFixed(2));
       return deposits.sort((a, b) => b.timestamp - a.timestamp);
     },
     [relayedMessagesOnL2, sentMessagesFromL1]
@@ -156,19 +148,18 @@ function App() {
         })
       ).data.sentMessages;
 
-      const l1SentMsgHashes = currentSentMsgs.map(msgTx => {
+      const sentMsgHashes = currentSentMsgs.map(msgTx => {
         return ethers.utils.solidityKeccak256(['bytes'], [msgTx.message]);
       });
 
       const currentRelayedMsgs = (
         await relayedMessagesOnL1.fetchMore({
-          variables: { searchHashes: l1SentMsgHashes },
+          variables: { searchHashes: sentMsgHashes },
         })
       ).data.relayedMessages;
 
       let withdrawals = rawWithdrawals.map(rawTx => {
         const tx = { ...rawTx };
-        tx.amount = ethers.utils.formatEther(tx.amount);
         tx.address = tx.account;
         tx.layer2Hash = tx.hash;
         tx.timestamp = tx.timestamp * 1000;
@@ -185,6 +176,13 @@ function App() {
         delete tx.hash;
         return tx;
       });
+      const amountPending = withdrawals.reduce((total, tx) => {
+        if (tx.layer1Hash) {
+          total = total.add(tx.amount);
+        }
+        return total;
+      }, new Fraction(0));
+      setTokensPendingWithdrawal(amountPending.divide((1e18).toString()).toFixed(2));
       return withdrawals.sort((a, b) => b.timestamp - a.timestamp);
     },
     [relayedMessagesOnL1, sentMessagesFromL2]
@@ -286,25 +284,25 @@ function App() {
     }, 10000);
   }, []);
 
-  React.useEffect(() => {
-    if (withdrawalStats.data?.stats) {
-      let total = new Fraction(withdrawalStats?.data?.stats.total);
-      total = total.divide((1e18).toString()).toFixed(2);
-      console.log(total);
+  // React.useEffect(() => {
+  //   if (withdrawalStats.data?.stats) {
+  //     let total = new Fraction(withdrawalStats?.data?.stats.total);
+  //     total = total.divide((1e18).toString()).toFixed(2);
+  //     console.log(total);
 
-      // setTokensPendingWithdrawal(total);
-    }
-  }, [withdrawalStats.data]);
+  //     // setTokensPendingWithdrawal(total);
+  //   }
+  // }, [withdrawalStats.data]);
 
-  React.useEffect(() => {
-    if (depositStats.data?.stats) {
-      let total = new Fraction(depositStats?.data?.stats.total);
-      total = total.divide((1e18).toString()).toFixed(2);
-      console.log(total);
+  // React.useEffect(() => {
+  //   if (depositStats.data?.stats) {
+  //     let total = new Fraction(depositStats?.data?.stats.total);
+  //     total = total.divide((1e18).toString()).toFixed(2);
+  //     console.log(total);
 
-      // setTokensPendingDeposit(total);
-    }
-  }, [depositStats.data]);
+  //     // setTokensPendingDeposit(total);
+  //   }
+  // }, [depositStats.data]);
 
   // console.log(withdrawalsInitiated?.data?.withdrawals);
 
@@ -321,14 +319,14 @@ function App() {
         </Heading>
         <Flex mb={16} w="600px" mx="auto">
           {/* <SearchInput handleAddressSearch={handleAddressSearch} /> */}
-          {/* <StatsTable
+          <StatsTable
             price={price}
             tokensPending={currentTableView === panels.WITHDRAWALS ? tokensPendingWithdrawal : tokensPendingDeposit}
             l2TotalAmt={l2TotalAmt}
             l1TotalAmt={l1TotalAmt}
             l1VsL2WithdrawalDiff={l1VsL2WithdrawalDiff}
             transactionType={currentTableView === panels.WITHDRAWALS ? 'withdrawals' : 'deposits'}
-          /> */}
+          />
         </Flex>
         <Switch>
           <Route path="/a/:address">

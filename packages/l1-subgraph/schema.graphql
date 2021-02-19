@@ -13,17 +13,17 @@ type RelayedMessage @entity {
   msgHash: String!
 }
 
-# Deposit stats
-type Stats @entity {
-  id: ID!
-  count: Int!
-  total: BigInt!
-}
-
 type Deposit @entity {
   id: ID!
   hash: String!
   timestamp: Int!
   account: Bytes!
+  amount: BigInt!
+}
+
+# Deposit stats
+type Stats @entity {
+  id: ID!
+  total: Int!
   amount: BigInt!
 }

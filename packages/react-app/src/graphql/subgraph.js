@@ -3,7 +3,7 @@ import { gql } from 'apollo-boost';
 export const getDeposits = timestampTo => {
   const queryString = `
   ${timestampTo ? `query deposits($timestampTo: Int!)` : ''} {
-    deposits(first: 50, orderBy: timestamp, orderDirection: desc ${
+    deposits(first: 100, orderBy: timestamp, orderDirection: desc ${
       timestampTo ? `, where: { timestamp_lt: $timestampTo }` : ''
     }) {
       account
@@ -19,7 +19,7 @@ export const getDeposits = timestampTo => {
 export const getWithdrawals = timestampTo => {
   const queryString = `
   ${timestampTo ? `query deposits($timestampTo: Int!)` : ''} {
-    withdrawals(first: 50, orderBy: timestamp, orderDirection: desc ${
+    withdrawals(first: 100, orderBy: timestamp, orderDirection: desc ${
       timestampTo ? `, where: { timestamp_lt: $timestampTo }` : ''
     }) {
       account

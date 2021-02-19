@@ -31,11 +31,11 @@ export function handleDeposit(event: DepositEvent): void {
   let stats = Stats.load(STATS_ID);
   if (stats == null) {
     stats = new Stats(STATS_ID);
-    stats.count = 0;
-    stats.total = BigInt.fromI32(0);
+    stats.total = 0;
+    stats.amount = BigInt.fromI32(0);
   }
-  stats.count = stats.count + 1;
-  stats.total = stats.total.plus(event.params.amount);
+  stats.total = stats.total + 1;
+  stats.amount = stats.amount.plus(event.params.amount);
   stats.save();
 
   const deposit = new Deposit(event.transaction.hash.toHex());

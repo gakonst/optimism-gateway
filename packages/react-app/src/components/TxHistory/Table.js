@@ -17,6 +17,7 @@ import {
   useToast,
   useMediaQuery,
 } from '@chakra-ui/react';
+import { ethers } from 'ethers';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { ExternalLinkIcon } from '@chakra-ui/icons';
 import DateTime from 'luxon/src/datetime.js';
@@ -132,11 +133,11 @@ function TxHistoryPanel({
                       </AddressWrapper>
                     </Td>
                     <Td overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" px={'0 1rem'}>
-                      {formatNumber((+tx.amount).toFixed(3))}
+                      {formatNumber((+ethers.utils.formatEther(tx.amount)).toFixed(3))}
                     </Td>
                     <Td px={'0 1rem'}>
                       {price ? (
-                        formatUSD(tx.amount * price)
+                        formatUSD(ethers.utils.formatEther(tx.amount) * price)
                       ) : (
                         <Flex alignItems="center">
                           <Spinner size="xs" mr={2} />
