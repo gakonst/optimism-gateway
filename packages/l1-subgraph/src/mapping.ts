@@ -5,7 +5,8 @@ import {
 } from '../generated/OVM_CrossDomainMessenger/OVM_CrossDomainMessenger';
 import { Deposit as DepositEvent } from '../generated/SynthetixBridgeToOptimism/SynthetixBridgeToOptimism';
 import { RelayedMessage, Deposit, SentMessage, Stats } from '../generated/schema';
-// import
+
+const STATS_ID = '1';
 
 // OVM cross domain messenger
 export function handleMessageRelayed(event: RelayedMessageEvent): void {
@@ -26,22 +27,23 @@ export function handleSentMessage(event: SentMessageEvent): void {
 
 // SNX deposit contract
 export function handleDeposit(event: DepositEvent): void {
-  const STATS_ID = '1';
+  const deposit = new Deposit(event.transaction.hash.toHex());
   // create a stats entity if this is the first event, else update the existing one
   let stats = Stats.load(STATS_ID);
   if (stats == null) {
     stats = new Stats(STATS_ID);
-    stats.total = 0;
-    stats.amount = BigInt.fromI32(0);
+    stats.count = 0;
+    stats.total = BigInt.fromI32(0);
   }
-  stats.total = stats.total + 1;
-  stats.amount = stats.amount.plus(event.params.amount);
-  stats.save();
-
-  const deposit = new Deposit(event.transaction.hash.toHex());
+  // zero indexed
+  deposit.index = stats.count;
   deposit.timestamp = event.block.timestamp.toI32();
   deposit.hash = event.transaction.hash.toHex();
   deposit.account = event.params.account;
   deposit.amount = event.params.amount;
   deposit.save();
+
+  stats.count = stats.count + 1;
+  stats.total = stats.total.plus(event.params.amount);
+  stats.save();
 }

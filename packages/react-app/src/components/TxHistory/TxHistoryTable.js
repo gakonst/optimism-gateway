@@ -38,6 +38,7 @@ function TxHistoryPanel({
   price,
   fetchMore,
   isInitialPage,
+  totalCount,
 }) {
   const toast = useToast();
   const [screenMd] = useMediaQuery('(min-width: 800px)');
@@ -198,11 +199,25 @@ function TxHistoryPanel({
             </Tbody>
           </Table>
           <Center pt={8} w="400px" mx="auto">
-            <Button d="flex" mx="auto" mt={8} onClick={() => fetchMore(panelKey, 'prev')} disabled={isInitialPage}>
+            <Button
+              d="flex"
+              mx="auto"
+              mt={8}
+              onClick={() => fetchMore(panelKey, 'prev')}
+              // descending order, so we're at the start of the list if the index === totalCount
+              disabled={transactions[0].index + 1 === totalCount}
+            >
               Prev page
               {/* <Spinner ml={2} size="sm" /> */}
             </Button>
-            <Button d="flex" mx="auto" mt={8} onClick={() => fetchMore(panelKey, 'next')}>
+            <Button
+              d="flex"
+              mx="auto"
+              mt={8}
+              onClick={() => fetchMore(panelKey, 'next')}
+              // descending order, so we're at the end of the list if the index === 0
+              disabled={transactions[transactions.length - 1].index === 0}
+            >
               Next page
               {/* <Spinner ml={2} size="sm" /> */}
             </Button>

@@ -6,6 +6,7 @@ export const getDeposits = timestampTo => {
     deposits(first: 100, orderBy: timestamp, orderDirection: desc ${
       timestampTo ? `, where: { timestamp_lt: $timestampTo }` : ''
     }) {
+      index
       account
       amount
       timestamp
@@ -22,6 +23,7 @@ export const getWithdrawals = timestampTo => {
     withdrawals(first: 100, orderBy: timestamp, orderDirection: desc ${
       timestampTo ? `, where: { timestamp_lt: $timestampTo }` : ''
     }) {
+      index
       account
       amount
       timestamp
@@ -55,7 +57,6 @@ export const GET_STATS = gql`
   {
     stats(id: "1") {
       count
-      total
     }
   }
 `;

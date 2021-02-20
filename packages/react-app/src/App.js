@@ -10,7 +10,7 @@ import TxHistoryTable from './components/TxHistory';
 import StatsTable from './components/StatsTable';
 import AddressView from './components/AddressView';
 import clients from './graphql/clients';
-import { getDeposits, getWithdrawals, GET_SENT_MESSAGES, GET_RELAYED_MESSAGES } from './graphql/subgraph';
+import { getDeposits, getWithdrawals, GET_SENT_MESSAGES, GET_RELAYED_MESSAGES, GET_STATS } from './graphql/subgraph';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import { abis, addresses } from '@project/contracts';
@@ -53,12 +53,12 @@ function App() {
   });
   const relayedMessagesOnL1 = useQuery(GET_RELAYED_MESSAGES, { client: clients.l1, skip: true });
   const relayedMessagesOnL2 = useQuery(GET_RELAYED_MESSAGES, { client: clients.l2, skip: true });
-  // const depositStats = useQuery(GET_STATS, {
-  //   client: clients.l1,
-  // });
-  // const withdrawalStats = useQuery(GET_STATS, {
-  //   client: clients.l2,
-  // });
+  const depositStats = useQuery(GET_STATS, {
+    client: clients.l1,
+  });
+  const withdrawalStats = useQuery(GET_STATS, {
+    client: clients.l2,
+  });
   const toast = useToast();
 
   /**
@@ -336,8 +336,8 @@ function App() {
               price={price}
               refreshTransactions={refreshTransactions}
               isRefreshing={isRefreshing}
-              // moreWithdrawalsToLoad={l2FromBlockNum > 0}
-              // moreDepositsToLoad={l1FromBlockNum > SNX_BRIDGE_DEPLOY_BLOCK_NUMBER}
+              totalWithdrawalCount={withdrawalStats.data?.stats.count}
+              totalDepositCount={depositStats.data?.stats.count}
             />
           </Route>
         </Switch>

@@ -23,6 +23,7 @@ type Stats @entity {
 
 type Withdrawal @entity {
   id: ID!
+  index: Int!
   hash: String!
   timestamp: Int!
   account: Bytes!

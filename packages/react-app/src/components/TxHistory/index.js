@@ -11,12 +11,10 @@ function TxHistoryTable({
   price,
   isRefreshing,
   refreshTransactions,
-  moreWithdrawalsToLoad,
+  totalWithdrawalCount,
+  totalDepositCount,
   withdrawalsLoading,
   depositsLoading,
-  moreDepositsToLoad,
-  isInitialWithdrawalPage,
-  isInitialDepositPage,
 }) {
   return (
     <>
@@ -38,7 +36,7 @@ function TxHistoryTable({
               refreshTransactions={refreshTransactions}
               price={price}
               fetchMore={fetchMore}
-              isInitialPage={isInitialWithdrawalPage}
+              totalCount={totalDepositCount}
             />
           </TabPanel>
           <TabPanel px={'0'} overflow="auto">
@@ -51,7 +49,7 @@ function TxHistoryTable({
               refreshTransactions={refreshTransactions}
               price={price}
               fetchMore={fetchMore}
-              isInitialPage={isInitialDepositPage}
+              totalCount={totalWithdrawalCount}
             />
           </TabPanel>
         </TabPanels>

@@ -158,6 +158,15 @@ export class Deposit extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get index(): i32 {
+    let value = this.get("index");
+    return value.toI32();
+  }
+
+  set index(value: i32) {
+    this.set("index", Value.fromI32(value));
+  }
+
   get hash(): string {
     let value = this.get("hash");
     return value.toString();
@@ -225,21 +234,21 @@ export class Stats extends Entity {
     this.set("id", Value.fromString(value));
   }
 
-  get total(): i32 {
-    let value = this.get("total");
+  get count(): i32 {
+    let value = this.get("count");
     return value.toI32();
   }
 
-  set total(value: i32) {
-    this.set("total", Value.fromI32(value));
+  set count(value: i32) {
+    this.set("count", Value.fromI32(value));
   }
 
-  get amount(): BigInt {
-    let value = this.get("amount");
+  get total(): BigInt {
+    let value = this.get("total");
     return value.toBigInt();
   }
 
-  set amount(value: BigInt) {
-    this.set("amount", Value.fromBigInt(value));
+  set total(value: BigInt) {
+    this.set("total", Value.fromBigInt(value));
   }
 }

@@ -6,6 +6,8 @@ import {
 } from '../generated/OVM_CrossDomainMessenger/OVM_CrossDomainMessenger';
 import { Withdrawal, SentMessage, RelayedMessage, Stats } from '../generated/schema';
 
+const STATS_ID = '1';
+
 // OVM cross domain messenger
 export function handleMessageRelayed(event: RelayedMessageEvent): void {
   const msgReceived = new RelayedMessage(event.params.msgHash.toHex());
@@ -25,7 +27,7 @@ export function handleSentMessage(event: SentMessageEvent): void {
 
 // SNX L2 contract
 export function handleWithdrawal(event: WithdrawalInitiatedEvent): void {
-  const STATS_ID = '1';
+  const withdrawal = new Withdrawal(event.transaction.hash.toHex() + '-' + event.logIndex.toString());
   // create a stats entity if this is the first event, else update the existing one
   let stats = Stats.load(STATS_ID);
   if (stats == null) {
@@ -33,11 +35,11 @@ export function handleWithdrawal(event: WithdrawalInitiatedEvent): void {
     stats.count = 0;
     stats.total = BigInt.fromI32(0);
   }
+  withdrawal.index = stats.count;
   stats.count = stats.count + 1;
   stats.total = stats.total.plus(event.params.amount);
   stats.save();
 
-  const withdrawal = new Withdrawal(event.transaction.hash.toHex() + '-' + event.logIndex.toString());
   withdrawal.timestamp = event.block.timestamp.toI32();
   withdrawal.hash = event.transaction.hash.toHex();
   withdrawal.account = event.params.account;

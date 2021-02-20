@@ -207,6 +207,15 @@ export class Withdrawal extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get index(): i32 {
+    let value = this.get("index");
+    return value.toI32();
+  }
+
+  set index(value: i32) {
+    this.set("index", Value.fromI32(value));
+  }
+
   get hash(): string {
     let value = this.get("hash");
     return value.toString();

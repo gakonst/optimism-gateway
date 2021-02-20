@@ -15,6 +15,7 @@ type RelayedMessage @entity {
 
 type Deposit @entity {
   id: ID!
+  index: Int!
   hash: String!
   timestamp: Int!
   account: Bytes!
@@ -24,6 +25,6 @@ type Deposit @entity {
 # Deposit stats
 type Stats @entity {
   id: ID!
-  total: Int!
-  amount: BigInt!
+  count: Int!
+  total: BigInt!
 }
