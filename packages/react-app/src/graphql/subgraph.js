@@ -1,11 +1,9 @@
 import { gql } from 'apollo-boost';
 
-export const getDeposits = timestampTo => {
+export const getDeposits = indexTo => {
   const queryString = `
-  ${timestampTo ? `query deposits($timestampTo: Int!)` : ''} {
-    deposits(first: 100, orderBy: timestamp, orderDirection: desc ${
-      timestampTo ? `, where: { timestamp_lt: $timestampTo }` : ''
-    }) {
+  ${indexTo ? `query deposits($indexTo: Int!)` : ''} {
+    deposits(first: 100, orderBy: index, orderDirection: desc ${indexTo ? `, where: { index_lt: $indexTo }` : ''}) {
       index
       account
       amount
@@ -17,12 +15,10 @@ export const getDeposits = timestampTo => {
   return gql(queryString);
 };
 
-export const getWithdrawals = timestampTo => {
+export const getWithdrawals = indexTo => {
   const queryString = `
-  ${timestampTo ? `query deposits($timestampTo: Int!)` : ''} {
-    withdrawals(first: 100, orderBy: timestamp, orderDirection: desc ${
-      timestampTo ? `, where: { timestamp_lt: $timestampTo }` : ''
-    }) {
+  ${indexTo ? `query withdrawals($indexTo: Int!)` : ''} {
+    withdrawals(first: 100, orderBy: index, orderDirection: desc ${indexTo ? `, where: { index_lt: $indexTo }` : ''}) {
       index
       account
       amount

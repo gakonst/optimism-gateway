@@ -14,7 +14,7 @@ import { getDeposits, getWithdrawals, GET_SENT_MESSAGES, GET_RELAYED_MESSAGES, G
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import { abis, addresses } from '@project/contracts';
-import { panels } from './constants';
+import { panels, FETCH_LIMIT } from './constants';
 
 const l1Provider = new JsonRpcProvider(`https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`);
 const l2Provider = new JsonRpcProvider(`https://mainnet.optimism.io`);
@@ -188,12 +188,12 @@ function App() {
       if (viewIdx === panels.DEPOSITS) {
         const firstTx = depositsInitiated.data.deposits[0];
         const lastTx = depositsInitiated.data.deposits[depositsInitiated.data.deposits.length - 1];
-        const timestampTo = page === 'prev' ? firstTx.timestamp : lastTx.timestamp;
+        const indexTo = page === 'prev' ? firstTx.index + FETCH_LIMIT + 1 : lastTx.index;
         const more = await depositsInitiated.fetchMore({
           variables: {
-            timestampTo: timestampTo,
+            indexTo,
           },
-          query: getDeposits(timestampTo),
+          query: getDeposits(indexTo),
           updateQuery: (prev, { fetchMoreResult }) => {
             return Object.assign(prev, fetchMoreResult);
           },
@@ -201,13 +201,14 @@ function App() {
         const deposits = await processDeposits(more.data.deposits);
         setDeposits(deposits);
       } else if (viewIdx === panels.WITHDRAWALS) {
-        const timestampTo =
-          withdrawalsInitiated.data.withdrawals[withdrawalsInitiated.data.withdrawals.length - 1].timestamp;
+        const firstTx = withdrawalsInitiated.data.withdrawals[0];
+        const lastTx = withdrawalsInitiated.data.withdrawals[withdrawalsInitiated.data.withdrawals.length - 1];
+        const indexTo = page === 'prev' ? firstTx.index + FETCH_LIMIT + 1 : lastTx.index;
         const more = await withdrawalsInitiated.fetchMore({
           variables: {
-            timestampTo: timestampTo,
+            indexTo,
           },
-          query: getWithdrawals(timestampTo),
+          query: getWithdrawals(indexTo),
           updateQuery: (prev, { fetchMoreResult }) => {
             return Object.assign(prev, fetchMoreResult);
           },
