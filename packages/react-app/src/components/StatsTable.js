@@ -1,10 +1,22 @@
 import React from 'react';
-import { Box, Spinner, Table, Thead, Tbody, Td, Tr, Th } from '@chakra-ui/react';
+import { Box, Spinner, Table, Thead, Tbody, Td, Tr, Th, Image, Heading } from '@chakra-ui/react';
 import { formatUSD, formatNumber } from '../helpers';
 
-function StatsTable({ depositAmountPending, withdrawalAmountPending, l2TotalAmt, price, l1TotalAmt, l1VsL2lDiff }) {
+function StatsTable({
+  depositAmountPending,
+  withdrawalAmountPending,
+  l2TotalAmt,
+  price,
+  l1TotalAmt,
+  l1VsL2lDiff,
+  token,
+}) {
   return (
     <Box border="1px solid rgba(255, 255, 255, 0.16)" borderRadius="5px" padding={4}>
+      <Heading as="h3" d="flex" size="md" fontWeight="300" alignItems="center" justifyContent="center" mb={8} mt={1}>
+        <Image src={token.iconURL} borderRadius="100%" mr={2} h={'20px'} w={'20px'} />
+        {token.name} | {token.symbol}
+      </Heading>
       <Table size="sm" variant="unstyled">
         <Thead>
           <Tr>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Switch, Route, useHistory } from 'react-router-dom';
+import { Switch, Route, useHistory, useLocation } from 'react-router-dom';
 import DateTime from 'luxon/src/datetime.js';
 import { Fraction } from '@uniswap/sdk';
 import { ethers } from 'ethers';
@@ -7,6 +7,7 @@ import { Box, Container, Heading, useToast, Flex } from '@chakra-ui/react';
 import { useQuery, useLazyQuery } from '@apollo/client';
 import SearchInput from './components/SearchInput';
 import TxHistoryTable from './components/TxHistory';
+import TokenSelector from './components/TokenSelector';
 import StatsTable from './components/StatsTable';
 import AddressView from './components/AddressView';
 import clients from './graphql/clients';
@@ -14,7 +15,7 @@ import { getDeposits, getWithdrawals, GET_SENT_MESSAGES, GET_RELAYED_MESSAGES, G
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import { abis, addresses } from '@project/contracts';
-import { panels, FETCH_LIMIT } from './constants';
+import { panels, tokens, FETCH_LIMIT } from './constants';
 
 const l1Provider = new JsonRpcProvider(`https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`);
 const l2Provider = new JsonRpcProvider(`https://mainnet.optimism.io`);
@@ -35,6 +36,8 @@ function App() {
   const [l1VsL2WithdrawalDiff, setl1VsL2WithdrawalDiff] = React.useState(null);
   const [depositsLoading, setDepositsLoading] = React.useState(false);
   const [withdrawalsLoading, setWithdrawalsLoading] = React.useState(false);
+  const [tokenSelection, setTokenSelection] = React.useState(null);
+  const [priceIntervalId, setPriceIntervalId] = React.useState(null);
   const depositsInitiated = useQuery(getDeposits(), {
     client: clients.l1,
     notifyOnNetworkStatusChange: true,
@@ -60,6 +63,7 @@ function App() {
     client: clients.l2,
   });
   const toast = useToast();
+  const location = useLocation();
 
   /**
    * Routes to address page if user enters valid address
@@ -185,7 +189,7 @@ function App() {
 
   const fetchTransactions = React.useCallback(
     async (viewIdx, page) => {
-      if (viewIdx === panels.DEPOSITS) {
+      if (viewIdx === panels.INCOMING) {
         const firstTx = depositsInitiated.data.deposits[0];
         const lastTx = depositsInitiated.data.deposits[depositsInitiated.data.deposits.length - 1];
         const indexTo = page === 'prev' ? firstTx.index + FETCH_LIMIT + 1 : lastTx.index;
@@ -200,7 +204,7 @@ function App() {
         });
         const deposits = await processDeposits(more.data.deposits);
         setDeposits(deposits);
-      } else if (viewIdx === panels.WITHDRAWALS) {
+      } else if (viewIdx === panels.OUTGOING) {
         const firstTx = withdrawalsInitiated.data.withdrawals[0];
         const lastTx = withdrawalsInitiated.data.withdrawals[withdrawalsInitiated.data.withdrawals.length - 1];
         const indexTo = page === 'prev' ? firstTx.index + FETCH_LIMIT + 1 : lastTx.index;
@@ -220,20 +224,61 @@ function App() {
     [depositsInitiated, processDeposits, withdrawalsInitiated, processWithdrawals]
   );
 
+  const handleTokenSelection = e => {
+    const tokenSymbol = e.target.value;
+    history.push({
+      search: tokenSymbol ? `?token=${tokenSymbol}` : '',
+    });
+    const token = tokens[tokenSymbol];
+
+    setTokenSelection(token);
+    resetPricePoller(token ? token.coingeckoId : '');
+  };
+
+  const resetPricePoller = coingeckoId => {
+    if (coingeckoId) {
+      const newIntervalId = setInterval(() => {
+        fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`)
+          .then(res => res.json())
+          .then(data => {
+            setPrice(data[coingeckoId].usd);
+          })
+          .catch(console.error);
+      }, 10000);
+
+      if (priceIntervalId != null) {
+        window.clearInterval(priceIntervalId);
+      }
+      setPriceIntervalId(newIntervalId);
+    } else {
+      window.clearInterval(priceIntervalId);
+    }
+  };
+
+  React.useState(() => {
+    const params = new URLSearchParams(location.search);
+    const tokenSymbol = params.token;
+    console.log(tokenSymbol);
+    if (tokenSymbol) {
+      setTokenSelection(tokens[tokenSymbol]);
+      resetPricePoller(tokens[tokenSymbol].coingeckoId);
+    }
+  }, []);
+
   React.useEffect(() => {
-    if (currentTableView === panels.DEPOSITS) {
+    if (currentTableView === panels.INCOMING) {
       setDepositsLoading(!deposits);
-    } else if (currentTableView === panels.WITHDRAWALS) {
+    } else if (currentTableView === panels.OUTGOING) {
       setWithdrawalsLoading(!withdrawals);
     }
   }, [currentTableView, deposits, depositsLoading, withdrawals]);
 
   React.useEffect(() => {
     (async () => {
-      if (currentTableView === panels.DEPOSITS && !deposits && depositsInitiated.data) {
+      if (currentTableView === panels.INCOMING && !deposits && depositsInitiated.data) {
         const deposits = await processDeposits(depositsInitiated.data.deposits);
         setDeposits(deposits);
-      } else if (currentTableView === panels.WITHDRAWALS && !withdrawals && withdrawalsInitiated.data) {
+      } else if (currentTableView === panels.OUTGOING && !withdrawals && withdrawalsInitiated.data) {
         const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
         setWithdrawals(withdrawals);
       }
@@ -277,34 +322,32 @@ function App() {
     })();
   }, [fetchTransactions, processWithdrawals, withdrawalsInitiated.data]);
 
-  // Fetches SNX price every 10 seconds
-  React.useEffect(() => {
-    setInterval(() => {
-      fetch(`https://api.coingecko.com/api/v3/simple/price?ids=havven&vs_currencies=usd`)
-        .then(res => res.json())
-        .then(data => {
-          setPrice(data.havven.usd);
-        })
-        .catch(console.error);
-    }, 10000);
-  }, []);
+  console.log();
 
   return (
     <>
       <Container maxW={'1400px'} py={4}>
-        <Box d="flex" justifyContent="flex-end"></Box>
-        <Heading as="h1" size="xl" textAlign="center" mb={16} mt={16} fontWeight="300 !important">
-          OΞ Token Tracker | Synthetix (SNX)
+        <Box as="header" d="flex">
+          <TokenSelector
+            handleTokenSelection={handleTokenSelection}
+            tokenSymbol={tokenSelection && tokenSelection.symbol}
+          />
+        </Box>
+        <Heading as="h1" size="xl" textAlign="center" mt={8} mb={16} fontWeight="300 !important">
+          OΞ Transaction Tracker
         </Heading>
         <Flex mb={16} w="600px" mx="auto">
-          <StatsTable
-            price={price}
-            depositAmountPending={depositAmountPending}
-            withdrawalAmountPending={withdrawalAmountPending}
-            l2TotalAmt={l2TotalAmt}
-            l1TotalAmt={l1TotalAmt}
-            l1VsL2lDiff={l1VsL2WithdrawalDiff}
-          />
+          {tokenSelection && (
+            <StatsTable
+              price={price}
+              depositAmountPending={depositAmountPending}
+              withdrawalAmountPending={withdrawalAmountPending}
+              l2TotalAmt={l2TotalAmt}
+              l1TotalAmt={l1TotalAmt}
+              l1VsL2lDiff={l1VsL2WithdrawalDiff}
+              token={tokenSelection}
+            />
+          )}
         </Flex>
         {/* <SearchInput handleAddressSearch={handleAddressSearch} /> */}
         <Switch>
@@ -339,6 +382,7 @@ function App() {
               isRefreshing={isRefreshing}
               totalWithdrawalCount={withdrawalStats.data?.stats.count}
               totalDepositCount={depositStats.data?.stats.count}
+              handleTokenSelection={handleTokenSelection}
             />
           </Route>
         </Switch>
