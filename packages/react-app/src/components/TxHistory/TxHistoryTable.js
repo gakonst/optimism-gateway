@@ -29,9 +29,7 @@ const Dot = ({ color }) => (
 );
 
 function TxHistoryPanel({
-  panelKey,
-  isLoading,
-  isLoadingMore,
+  txsLoading,
   isRefreshing,
   transactions,
   refreshTransactions,
@@ -73,7 +71,7 @@ function TxHistoryPanel({
   };
   return (
     <>
-      {isLoading || !transactions ? (
+      {txsLoading || !transactions ? (
         <Center py="50px" maxW="200px" mx="auto">
           <Box d="flex" flexDir="column" alignItems="center">
             <Spinner h="150px" w="150px" />
@@ -91,12 +89,6 @@ function TxHistoryPanel({
                 <Th minW="30px" w="22%" px={'0 1rem'}>
                   Address
                 </Th>
-                <Th minW="30px" w="6%" px={'0 1rem'}>
-                  Amount
-                </Th>
-                <Th minW="30px" w="8%" px={'0 1rem'}>
-                  Value
-                </Th>
                 <Th w="12%" px={'0 1rem'} onClick={changeDateFormat} cursor="pointer">
                   Initiated
                 </Th>
@@ -109,7 +101,6 @@ function TxHistoryPanel({
                       px={'1rem'}
                       border="1px solid rgba(255,255,255,0.1)"
                       onClick={refreshTransactions}
-                      isDisabled={isLoadingMore}
                     >
                       Refresh{isRefreshing && <Spinner ml={2} size="sm" />}
                     </Button>
@@ -134,10 +125,10 @@ function TxHistoryPanel({
                         </Box>
                       </AddressWrapper>
                     </Td>
-                    <Td overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" px={'0 1rem'}>
+                    {/* <Td overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" px={'0 1rem'}>
                       {formatNumber((+ethers.utils.formatEther(tx.amount)).toFixed(3))}
-                    </Td>
-                    <Td px={'0 1rem'}>
+                    </Td> */}
+                    {/* <Td px={'0 1rem'}>
                       {price ? (
                         formatUSD(ethers.utils.formatEther(tx.amount) * price)
                       ) : (
@@ -146,7 +137,7 @@ function TxHistoryPanel({
                           Getting price
                         </Flex>
                       )}
-                    </Td>
+                    </Td> */}
                     <Td px={'0 1rem'} onClick={changeDateFormat} cursor="pointer">
                       {dateFormat === 'MOMENT'
                         ? DateTime.fromMillis(tx.timestamp).toFormat('D, t ZZZZ')
@@ -203,7 +194,7 @@ function TxHistoryPanel({
               d="flex"
               mx="auto"
               mt={8}
-              onClick={() => fetchMore(panelKey, 'prev')}
+              onClick={() => fetchMore('prev')}
               // descending order, so we're at the start of the list if the index === totalCount
               disabled={transactions[0].index + 1 === totalCount}
             >
@@ -214,7 +205,7 @@ function TxHistoryPanel({
               d="flex"
               mx="auto"
               mt={8}
-              onClick={() => fetchMore(panelKey, 'next')}
+              onClick={() => fetchMore('next')}
               // descending order, so we're at the end of the list if the index === 0
               disabled={transactions[transactions.length - 1].index === 0}
             >

@@ -3,7 +3,7 @@ import { gql } from 'apollo-boost';
 export const getDeposits = indexTo => {
   const queryString = `
   ${indexTo ? `query deposits($indexTo: Int!)` : ''} {
-    deposits(first: 100, orderBy: index, orderDirection: desc ${indexTo ? `, where: { index_lt: $indexTo }` : ''}) {
+    deposits(first: 100, orderBy: index, orderDirection: asc ${indexTo ? `, where: { index_lt: $indexTo }` : ''}) {
       index
       account
       amount

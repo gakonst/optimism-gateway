@@ -27,15 +27,13 @@ function App() {
   const [currentTableView, setCurrentTableView] = React.useState(0);
   const [price, setPrice] = React.useState(0);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [deposits, setDeposits] = React.useState();
-  const [withdrawals, setWithdrawals] = React.useState();
+  const [transactions, setTransactions] = React.useState();
   const [depositAmountPending, setDepositAmountPending] = React.useState(null);
   const [withdrawalAmountPending, setWithdrawalAmountPending] = React.useState(null);
   const [l1TotalAmt, setl1TotalAmt] = React.useState(null);
   const [l2TotalAmt, setl2TotalAmt] = React.useState(null);
   const [l1VsL2WithdrawalDiff, setl1VsL2WithdrawalDiff] = React.useState(null);
-  const [depositsLoading, setDepositsLoading] = React.useState(false);
-  const [withdrawalsLoading, setWithdrawalsLoading] = React.useState(false);
+  const [txsLoading, setTxsLoading] = React.useState(false);
   const [tokenSelection, setTokenSelection] = React.useState(null);
   const [priceIntervalId, setPriceIntervalId] = React.useState(null);
   const depositsInitiated = useQuery(getDeposits(), {
@@ -188,8 +186,8 @@ function App() {
   );
 
   const fetchTransactions = React.useCallback(
-    async (viewIdx, page) => {
-      if (viewIdx === panels.INCOMING) {
+    async page => {
+      if (currentTableView === panels.INCOMING) {
         const firstTx = depositsInitiated.data.deposits[0];
         const lastTx = depositsInitiated.data.deposits[depositsInitiated.data.deposits.length - 1];
         const indexTo = page === 'prev' ? firstTx.index + FETCH_LIMIT + 1 : lastTx.index;
@@ -203,8 +201,8 @@ function App() {
           },
         });
         const deposits = await processDeposits(more.data.deposits);
-        setDeposits(deposits);
-      } else if (viewIdx === panels.OUTGOING) {
+        setTransactions(deposits);
+      } else if (currentTableView === panels.OUTGOING) {
         const firstTx = withdrawalsInitiated.data.withdrawals[0];
         const lastTx = withdrawalsInitiated.data.withdrawals[withdrawalsInitiated.data.withdrawals.length - 1];
         const indexTo = page === 'prev' ? firstTx.index + FETCH_LIMIT + 1 : lastTx.index;
@@ -218,10 +216,10 @@ function App() {
           },
         });
         const withdrawals = await processWithdrawals(more.data.withdrawals);
-        setWithdrawals(withdrawals);
+        setTransactions(withdrawals);
       }
     },
-    [depositsInitiated, processDeposits, withdrawalsInitiated, processWithdrawals]
+    [currentTableView, depositsInitiated, processDeposits, withdrawalsInitiated, processWithdrawals]
   );
 
   const handleTokenSelection = e => {
@@ -266,32 +264,16 @@ function App() {
   }, []);
 
   React.useEffect(() => {
-    if (currentTableView === panels.INCOMING) {
-      setDepositsLoading(!deposits);
-    } else if (currentTableView === panels.OUTGOING) {
-      setWithdrawalsLoading(!withdrawals);
-    }
-  }, [currentTableView, deposits, depositsLoading, withdrawals]);
-
-  React.useEffect(() => {
     (async () => {
-      if (currentTableView === panels.INCOMING && !deposits && depositsInitiated.data) {
+      if (currentTableView === panels.INCOMING && depositsInitiated.data) {
         const deposits = await processDeposits(depositsInitiated.data.deposits);
-        setDeposits(deposits);
-      } else if (currentTableView === panels.OUTGOING && !withdrawals && withdrawalsInitiated.data) {
+        setTransactions(deposits);
+      } else if (currentTableView === panels.OUTGOING && withdrawalsInitiated.data) {
         const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
-        setWithdrawals(withdrawals);
+        setTransactions(withdrawals);
       }
     })();
-  }, [
-    currentTableView,
-    deposits,
-    depositsInitiated.data,
-    processDeposits,
-    withdrawalsInitiated.data,
-    withdrawals,
-    processWithdrawals,
-  ]);
+  }, [currentTableView, depositsInitiated.data, processDeposits, withdrawalsInitiated.data, processWithdrawals]);
 
   React.useEffect(() => {
     (async () => {
@@ -305,19 +287,19 @@ function App() {
 
   React.useEffect(() => {
     (async () => {
-      if (!withdrawals || !price || !withdrawalAmountPending) return;
+      if (!transactions || !price || !withdrawalAmountPending) return;
 
       const diff = +l1TotalAmt - +l2TotalAmt - withdrawalAmountPending;
       setl1VsL2WithdrawalDiff(diff.toFixed(2));
     })();
-  }, [l1TotalAmt, l2TotalAmt, price, withdrawalAmountPending, withdrawals]);
+  }, [l1TotalAmt, l2TotalAmt, price, transactions, withdrawalAmountPending]);
 
   // Force fetches withdrawals on initial page load so stats table can be calculated
   React.useEffect(() => {
     (async () => {
       if (withdrawalsInitiated.data) {
         const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
-        setWithdrawals(withdrawals);
+        setTransactions(withdrawals);
       }
     })();
   }, [fetchTransactions, processWithdrawals, withdrawalsInitiated.data]);
@@ -363,25 +345,22 @@ function App() {
               l1Provider={l1Provider}
               l2Provider={l2Provider}
               watcher={watcher}
-              setWithdrawals={setWithdrawals}
-              setWithdrawalsLoading={setWithdrawalsLoading}
-              withdrawalsLoading={withdrawalsLoading}
+              setTransactions={setTransactions}
+              setTxsLoading={setTxsLoading}
+              outgoingTxLoading={outgoingTxLoading}
             /> */}
           </Route>
           <Route exact path="/">
             <TxHistoryTable
-              deposits={deposits}
-              withdrawals={withdrawals}
-              depositsLoading={depositsLoading}
-              withdrawalsLoading={withdrawalsLoading}
+              transactions={transactions}
+              txsLoading={txsLoading}
               setCurrentTableView={setCurrentTableView}
               fetchMore={fetchTransactions}
               // isLoadingMore={isLoadingMore}
               price={price}
               refreshTransactions={refreshTransactions}
               isRefreshing={isRefreshing}
-              totalWithdrawalCount={withdrawalStats.data?.stats.count}
-              totalDepositCount={depositStats.data?.stats.count}
+              totalCount={Number.MAX_SAFE_INTEGER} // TODO: make all subgraph queries return a totalCount
               handleTokenSelection={handleTokenSelection}
             />
           </Route>
