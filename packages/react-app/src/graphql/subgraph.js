@@ -30,24 +30,34 @@ export const getWithdrawals = indexTo => {
   return gql(queryString);
 };
 
-export const GET_SENT_MESSAGES = gql`
-  query sentMessages($searchHashes: [String!]) {
-    sentMessages(orderBy: timestamp, orderDirection: desc, where: { hash_in: $searchHashes }) {
+export const getSentMessages = searchHashes => {
+  const queryString = `
+  ${searchHashes ? `query sentMessages($searchHashes: [String!])` : ''} {
+    sentMessages(orderBy: timestamp, orderDirection: desc ${
+      searchHashes ? `, where: { hash_in: $searchHashes }` : ''
+    }) {
       hash
       message
     }
   }
 `;
+  return gql(queryString);
+};
 
-export const GET_RELAYED_MESSAGES = gql`
-  query relayedMessages($searchHashes: [String!]) {
-    relayedMessages(orderBy: timestamp, orderDirection: desc, where: { msgHash_in: $searchHashes }) {
+export const getRelayedMessages = searchHashes => {
+  const queryString = `
+  ${searchHashes ? `query relayedMessages($searchHashes: [String!])` : ''} {
+    relayedMessages(orderBy: timestamp, orderDirection: desc ${
+      searchHashes ? `, where: { msgHash_in: $searchHashes }` : ''
+    }) {
       hash
       timestamp
       msgHash
     }
   }
 `;
+  return gql(queryString);
+};
 
 export const GET_STATS = gql`
   {

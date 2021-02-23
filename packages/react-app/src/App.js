@@ -11,7 +11,7 @@ import TokenSelector from './components/TokenSelector';
 import StatsTable from './components/StatsTable';
 import AddressView from './components/AddressView';
 import clients from './graphql/clients';
-import { getDeposits, getWithdrawals, GET_SENT_MESSAGES, GET_RELAYED_MESSAGES, GET_STATS } from './graphql/subgraph';
+import { getDeposits, getWithdrawals, getSentMessages, getRelayedMessages, GET_STATS } from './graphql/subgraph';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import { abis, addresses } from '@project/contracts';
@@ -24,10 +24,11 @@ const snxL2Contract = new Contract(addresses.l2.SNX.token, abis.SynthetixL2Token
 
 function App() {
   const history = useHistory();
-  const [currentTableView, setCurrentTableView] = React.useState(0);
+  const [currentTableView, setCurrentTableView] = React.useState();
   const [price, setPrice] = React.useState(0);
+  const [fetchingPrice, setFetchingPrice] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [transactions, setTransactions] = React.useState();
+  const [transactions, _setTransactions] = React.useState();
   const [depositAmountPending, setDepositAmountPending] = React.useState(null);
   const [withdrawalAmountPending, setWithdrawalAmountPending] = React.useState(null);
   const [l1TotalAmt, setl1TotalAmt] = React.useState(null);
@@ -36,6 +37,7 @@ function App() {
   const [txsLoading, setTxsLoading] = React.useState(false);
   const [tokenSelection, setTokenSelection] = React.useState(null);
   const [priceIntervalId, setPriceIntervalId] = React.useState(null);
+  const [queryParams, setQueryParams] = React.useState(null);
   const depositsInitiated = useQuery(getDeposits(), {
     client: clients.l1,
     notifyOnNetworkStatusChange: true,
@@ -44,16 +46,16 @@ function App() {
     client: clients.l2,
     notifyOnNetworkStatusChange: true,
   });
-  const sentMessagesFromL1 = useQuery(GET_SENT_MESSAGES, {
+  const sentMessagesFromL1 = useQuery(getSentMessages(), {
     client: clients.l1,
     skip: true,
   });
-  const sentMessagesFromL2 = useQuery(GET_SENT_MESSAGES, {
+  const sentMessagesFromL2 = useQuery(getSentMessages(), {
     client: clients.l2,
     skip: true,
   });
-  const relayedMessagesOnL1 = useQuery(GET_RELAYED_MESSAGES, { client: clients.l1, skip: true });
-  const relayedMessagesOnL2 = useQuery(GET_RELAYED_MESSAGES, { client: clients.l2, skip: true });
+  const relayedMessagesOnL1 = useQuery(getRelayedMessages(), { client: clients.l1, skip: true });
+  const relayedMessagesOnL2 = useQuery(getRelayedMessages(), { client: clients.l2, skip: true });
   const depositStats = useQuery(GET_STATS, {
     client: clients.l1,
   });
@@ -62,6 +64,11 @@ function App() {
   });
   const toast = useToast();
   const location = useLocation();
+
+  const setTransactions = transactions => {
+    setTxsLoading(false);
+    _setTransactions(transactions);
+  };
 
   /**
    * Routes to address page if user enters valid address
@@ -89,6 +96,7 @@ function App() {
 
   const processDeposits = React.useCallback(
     async rawDeposits => {
+      console.log('processDeposits');
       // retrieve relevant messages based on this batch of tx timestamps
       const depositL1TxHashes = rawDeposits.map(tx => tx.hash);
       const currentSentMsgs = (
@@ -96,6 +104,7 @@ function App() {
           variables: { searchHashes: depositL1TxHashes },
         })
       ).data.sentMessages;
+      console.log(currentSentMsgs);
       const sentMsgHashes = currentSentMsgs.map(msgTx => {
         return ethers.utils.solidityKeccak256(['bytes'], [msgTx.message]);
       });
@@ -137,6 +146,7 @@ function App() {
 
   const processWithdrawals = React.useCallback(
     async rawWithdrawals => {
+      console.log('processWithdrawals');
       // retrieve relevant messages based on this batch of tx timestamps
       const withdrawalL2TxHashes = rawWithdrawals.map(tx => tx.hash);
       const currentSentMsgs = (
@@ -223,23 +233,30 @@ function App() {
   );
 
   const handleTokenSelection = e => {
+    if (!queryParams) return;
     const tokenSymbol = e.target.value;
+    if (tokenSymbol) {
+      queryParams.set('token', tokenSymbol);
+    } else {
+      queryParams.delete('token');
+    }
     history.push({
-      search: tokenSymbol ? `?token=${tokenSymbol}` : '',
+      search: queryParams.toString(),
     });
     const token = tokens[tokenSymbol];
-
     setTokenSelection(token);
     resetPricePoller(token ? token.coingeckoId : '');
   };
 
-  const resetPricePoller = coingeckoId => {
+  const resetPricePoller = React.useCallback(coingeckoId => {
+    setFetchingPrice(true);
     if (coingeckoId) {
       const newIntervalId = setInterval(() => {
         fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`)
           .then(res => res.json())
           .then(data => {
             setPrice(data[coingeckoId].usd);
+            setFetchingPrice(false);
           })
           .catch(console.error);
       }, 10000);
@@ -251,35 +268,82 @@ function App() {
     } else {
       window.clearInterval(priceIntervalId);
     }
+  });
+
+  /**
+   * Handles switching page view
+   */
+  const handleTableViewChange = async direction => {
+    setCurrentTableView(direction);
+    if (direction === panels.INCOMING && depositsInitiated.data) {
+      setTxsLoading(true);
+      const deposits = await processDeposits(depositsInitiated.data.deposits);
+      setTransactions(deposits);
+    } else if (direction === panels.OUTGOING && withdrawalsInitiated.data) {
+      setTxsLoading(true);
+      const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
+      setTransactions(withdrawals);
+    }
   };
 
-  React.useState(() => {
-    const params = new URLSearchParams(location.search);
-    const tokenSymbol = params.token;
-    console.log(tokenSymbol);
-    if (tokenSymbol) {
-      setTokenSelection(tokens[tokenSymbol]);
-      resetPricePoller(tokens[tokenSymbol].coingeckoId);
+  React.useEffect(() => {
+    if (!queryParams && location) {
+      const params = new URLSearchParams(location.search.slice(1));
+      setCurrentTableView(params.get('dir') || 'incoming');
+      setQueryParams(params);
     }
-  }, []);
+  }, [location, queryParams]);
 
+  /**
+   * Parses query params to establish page's initial state
+   */
   React.useEffect(() => {
     (async () => {
-      if (currentTableView === panels.INCOMING && depositsInitiated.data) {
-        const deposits = await processDeposits(depositsInitiated.data.deposits);
-        setTransactions(deposits);
-      } else if (currentTableView === panels.OUTGOING && withdrawalsInitiated.data) {
-        const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
-        setTransactions(withdrawals);
+      if (queryParams) {
+        const tokenSymbol = queryParams.get('token');
+        if (tokenSymbol && !price && !fetchingPrice) {
+          setTokenSelection(tokens[tokenSymbol]);
+          resetPricePoller(tokens[tokenSymbol].coingeckoId);
+        }
+
+        const direction = queryParams.get('dir') || 'incoming';
+        if (direction === 'incoming') {
+          if (tokenSymbol) {
+            // TODO: fetch deposits
+          } else {
+            // TODO: fetch all incoming transactions
+            // const currentSentMsgs = (
+            //   await sentMessagesFromL1.fetchMore({
+            //     variables: { searchHashes: depositL1TxHashes },
+            //   })
+            // ).data.sentMessages;
+          }
+        } else {
+          // direction === 'outgoing'
+          if (tokenSymbol && withdrawalsInitiated.data) {
+            const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
+            setTransactions(withdrawals);
+          } else {
+            // TODO: fetch all outgoing transactions
+          }
+        }
       }
     })();
-  }, [currentTableView, depositsInitiated.data, processDeposits, withdrawalsInitiated.data, processWithdrawals]);
+  }, [
+    queryParams,
+    fetchTransactions,
+    processWithdrawals,
+    withdrawalsInitiated.data,
+    resetPricePoller,
+    price,
+    fetchingPrice,
+    sentMessagesFromL1,
+  ]);
 
   React.useEffect(() => {
     (async () => {
       const l1TotalAmt = ethers.utils.formatEther(await snxL1Contract.balanceOf(addresses.l1.SNX.bridge));
       const l2TotalAmt = ethers.utils.formatEther(await snxL2Contract.totalSupply());
-
       setl1TotalAmt(l1TotalAmt);
       setl2TotalAmt(l2TotalAmt);
     })();
@@ -293,18 +357,6 @@ function App() {
       setl1VsL2WithdrawalDiff(diff.toFixed(2));
     })();
   }, [l1TotalAmt, l2TotalAmt, price, transactions, withdrawalAmountPending]);
-
-  // Force fetches withdrawals on initial page load so stats table can be calculated
-  React.useEffect(() => {
-    (async () => {
-      if (withdrawalsInitiated.data) {
-        const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
-        setTransactions(withdrawals);
-      }
-    })();
-  }, [fetchTransactions, processWithdrawals, withdrawalsInitiated.data]);
-
-  console.log();
 
   return (
     <>
@@ -354,14 +406,16 @@ function App() {
             <TxHistoryTable
               transactions={transactions}
               txsLoading={txsLoading}
-              setCurrentTableView={setCurrentTableView}
+              handleTableViewChange={handleTableViewChange}
               fetchMore={fetchTransactions}
               // isLoadingMore={isLoadingMore}
+              currentTableView={currentTableView}
               price={price}
               refreshTransactions={refreshTransactions}
               isRefreshing={isRefreshing}
               totalCount={Number.MAX_SAFE_INTEGER} // TODO: make all subgraph queries return a totalCount
               handleTokenSelection={handleTokenSelection}
+              queryParams={queryParams}
             />
           </Route>
         </Switch>

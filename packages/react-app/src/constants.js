@@ -1,6 +1,6 @@
 export const panels = {
-  INCOMING: 0,
-  OUTGOING: 1,
+  INCOMING: 'incoming',
+  OUTGOING: 'outgoing',
 };
 
 export const tokens = {

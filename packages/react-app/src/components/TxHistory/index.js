@@ -1,10 +1,11 @@
 import React from 'react';
 import { Box, HStack, Button } from '@chakra-ui/react';
+import { useHistory } from 'react-router-dom';
 import Table from './TxHistoryTable';
 
 function TxHistoryTable({
   transactions,
-  setCurrentTableView,
+  handleTableViewChange,
   fetchMore,
   price,
   isRefreshing,
@@ -12,15 +13,34 @@ function TxHistoryTable({
   totalCount,
   txsLoading,
   handleTokenSelection,
+  currentTableView,
+  queryParams,
 }) {
+  const history = useHistory();
+
+  const handleDirectionButtonClick = direction => {
+    queryParams.set('direction', direction);
+    history.push({
+      search: queryParams.toString(),
+    });
+    handleTableViewChange(direction);
+  };
   return (
     <>
-      <Box variant="soft-rounded" mt={8} mb={16} defaultIndex={0}>
-        <HStack alignItems="flex-end">
-          <Button fontSize="0.8rem" mr={4} maxH={'35px'} onClick={() => setCurrentTableView(0)}>
+      <Box variant="soft-rounded" mt={8} mb={16}>
+        <HStack alignItems="flex-end" justifyContent="center" pb={8} spacing={10}>
+          <Button
+            onClick={() => handleDirectionButtonClick('incoming')}
+            size="lg"
+            variant={currentTableView === 'incoming' ? 'outline' : 'ghost'}
+          >
             INCOMING
           </Button>
-          <Button fontSize="0.8rem" maxH={'35px'} onClick={() => setCurrentTableView(1)}>
+          <Button
+            onClick={() => handleDirectionButtonClick('outgoing')}
+            size="lg"
+            variant={currentTableView === 'outgoing' ? 'outline' : 'ghost'}
+          >
             OUTGOING
           </Button>
         </HStack>
