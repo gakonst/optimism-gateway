@@ -19,7 +19,7 @@ function TxHistoryTable({
   const history = useHistory();
 
   const handleDirectionButtonClick = direction => {
-    queryParams.set('direction', direction);
+    queryParams.set('dir', direction);
     history.push({
       search: queryParams.toString(),
     });
