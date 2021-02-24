@@ -4,12 +4,20 @@ import {
   SentMessage as SentMessageEvent,
   RelayedMessage as RelayedMessageEvent,
 } from '../generated/OVM_CrossDomainMessenger/OVM_CrossDomainMessenger';
-import { Withdrawal, SentMessage, RelayedMessage, Stats } from '../generated/schema';
+import { Withdrawal, SentMessage, RelayedMessage, MessageStats, WithdrawalStats } from '../generated/schema';
 
 const STATS_ID = '1';
 
 // OVM cross domain messenger
 export function handleMessageRelayed(event: RelayedMessageEvent): void {
+  // create a stats entity if this is the first event, else update the existing one
+  let stats = MessageStats.load(STATS_ID);
+  if (stats == null) {
+    stats = new MessageStats(STATS_ID);
+    stats.relayedMessageCount = 0;
+  }
+  stats.relayedMessageCount = stats.relayedMessageCount + 1;
+
   const msgReceived = new RelayedMessage(event.params.msgHash.toHex());
   msgReceived.hash = event.transaction.hash.toHex();
   msgReceived.timestamp = event.block.timestamp.toI32();
@@ -18,6 +26,14 @@ export function handleMessageRelayed(event: RelayedMessageEvent): void {
 }
 
 export function handleSentMessage(event: SentMessageEvent): void {
+  // create a stats entity if this is the first event, else update the existing one
+  let stats = MessageStats.load(STATS_ID);
+  if (stats == null) {
+    stats = new MessageStats(STATS_ID);
+    stats.sentMessageCount = 0;
+  }
+  stats.sentMessageCount = stats.sentMessageCount + 1;
+
   const sentMessage = new SentMessage(event.transaction.hash.toHex() + '-' + event.logIndex.toString());
   sentMessage.timestamp = event.block.timestamp.toI32();
   sentMessage.hash = event.transaction.hash.toHex();
@@ -29,15 +45,15 @@ export function handleSentMessage(event: SentMessageEvent): void {
 export function handleWithdrawal(event: WithdrawalInitiatedEvent): void {
   const withdrawal = new Withdrawal(event.transaction.hash.toHex() + '-' + event.logIndex.toString());
   // create a stats entity if this is the first event, else update the existing one
-  let stats = Stats.load(STATS_ID);
+  let stats = WithdrawalStats.load(STATS_ID);
   if (stats == null) {
-    stats = new Stats(STATS_ID);
-    stats.count = 0;
-    stats.total = BigInt.fromI32(0);
+    stats = new WithdrawalStats(STATS_ID);
+    stats.totalCount = 0;
+    stats.totalAmount = BigInt.fromI32(0);
   }
-  withdrawal.index = stats.count;
-  stats.count = stats.count + 1;
-  stats.total = stats.total.plus(event.params.amount);
+  withdrawal.index = stats.totalCount;
+  stats.totalCount = stats.totalCount + 1;
+  stats.totalAmount = stats.totalAmount.plus(event.params.amount);
   stats.save();
 
   withdrawal.timestamp = event.block.timestamp.toI32();

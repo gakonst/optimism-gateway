@@ -128,7 +128,7 @@ export class RelayedMessage extends Entity {
   }
 }
 
-export class Stats extends Entity {
+export class MessageStats extends Entity {
   constructor(id: string) {
     super();
     this.set("id", Value.fromString(id));
@@ -136,17 +136,17 @@ export class Stats extends Entity {
 
   save(): void {
     let id = this.get("id");
-    assert(id !== null, "Cannot save Stats entity without an ID");
+    assert(id !== null, "Cannot save MessageStats entity without an ID");
     assert(
       id.kind == ValueKind.STRING,
-      "Cannot save Stats entity with non-string ID. " +
+      "Cannot save MessageStats entity with non-string ID. " +
         'Considering using .toHex() to convert the "id" to a string.'
     );
-    store.set("Stats", id.toString(), this);
+    store.set("MessageStats", id.toString(), this);
   }
 
-  static load(id: string): Stats | null {
-    return store.get("Stats", id) as Stats | null;
+  static load(id: string): MessageStats | null {
+    return store.get("MessageStats", id) as MessageStats | null;
   }
 
   get id(): string {
@@ -158,22 +158,22 @@ export class Stats extends Entity {
     this.set("id", Value.fromString(value));
   }
 
-  get count(): i32 {
-    let value = this.get("count");
+  get sentMessageCount(): i32 {
+    let value = this.get("sentMessageCount");
     return value.toI32();
   }
 
-  set count(value: i32) {
-    this.set("count", Value.fromI32(value));
+  set sentMessageCount(value: i32) {
+    this.set("sentMessageCount", Value.fromI32(value));
   }
 
-  get total(): BigInt {
-    let value = this.get("total");
-    return value.toBigInt();
+  get relayedMessageCount(): i32 {
+    let value = this.get("relayedMessageCount");
+    return value.toI32();
   }
 
-  set total(value: BigInt) {
-    this.set("total", Value.fromBigInt(value));
+  set relayedMessageCount(value: i32) {
+    this.set("relayedMessageCount", Value.fromI32(value));
   }
 }
 
@@ -250,5 +250,54 @@ export class Withdrawal extends Entity {
 
   set amount(value: BigInt) {
     this.set("amount", Value.fromBigInt(value));
+  }
+}
+
+export class WithdrawalStats extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save WithdrawalStats entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save WithdrawalStats entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("WithdrawalStats", id.toString(), this);
+  }
+
+  static load(id: string): WithdrawalStats | null {
+    return store.get("WithdrawalStats", id) as WithdrawalStats | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get totalCount(): i32 {
+    let value = this.get("totalCount");
+    return value.toI32();
+  }
+
+  set totalCount(value: i32) {
+    this.set("totalCount", Value.fromI32(value));
+  }
+
+  get totalAmount(): BigInt {
+    let value = this.get("totalAmount");
+    return value.toBigInt();
+  }
+
+  set totalAmount(value: BigInt) {
+    this.set("totalAmount", Value.fromBigInt(value));
   }
 }

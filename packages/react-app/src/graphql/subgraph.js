@@ -59,10 +59,20 @@ export const getRelayedMessages = searchHashes => {
   return gql(queryString);
 };
 
-export const GET_STATS = gql`
+export const GET_MSG_STATS = gql`
   {
     stats(id: "1") {
-      count
+      sentMessageCount
+      relayedMessageCount
+    }
+  }
+`;
+
+export const GET_TX_STATS = gql`
+  {
+    stats(id: "1") {
+      totalCount
+      totalAmount
     }
   }
 `;

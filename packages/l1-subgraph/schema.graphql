@@ -13,6 +13,12 @@ type RelayedMessage @entity {
   msgHash: String!
 }
 
+type MessageStats @entity {
+  id: ID!
+  sentMessageCount: Int!
+  relayedMessageCount: Int!
+}
+
 type Deposit @entity {
   id: ID!
   index: Int!
@@ -22,9 +28,8 @@ type Deposit @entity {
   amount: BigInt!
 }
 
-# Deposit stats
-type Stats @entity {
+type DepositStats @entity {
   id: ID!
-  count: Int!
-  total: BigInt!
+  totalCount: Int!
+  totalAmount: BigInt!
 }

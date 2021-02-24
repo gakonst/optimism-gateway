@@ -11,7 +11,14 @@ import TokenSelector from './components/TokenSelector';
 import StatsTable from './components/StatsTable';
 import AddressView from './components/AddressView';
 import clients from './graphql/clients';
-import { getDeposits, getWithdrawals, getSentMessages, getRelayedMessages, GET_STATS } from './graphql/subgraph';
+import {
+  getDeposits,
+  getWithdrawals,
+  getSentMessages,
+  getRelayedMessages,
+  GET_TX_STATS,
+  GET_MSG_STATS,
+} from './graphql/subgraph';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import { abis, addresses } from '@project/contracts';
@@ -56,12 +63,14 @@ function App() {
   });
   const relayedMessagesOnL1 = useQuery(getRelayedMessages(), { client: clients.l1, skip: true });
   const relayedMessagesOnL2 = useQuery(getRelayedMessages(), { client: clients.l2, skip: true });
-  const depositStats = useQuery(GET_STATS, {
+  const depositStats = useQuery(GET_TX_STATS, {
     client: clients.l1,
   });
-  const withdrawalStats = useQuery(GET_STATS, {
+  const withdrawalStats = useQuery(GET_TX_STATS, {
     client: clients.l2,
   });
+  const l1MessageStats = useQuery(GET_MSG_STATS, { client: clients.l1 });
+  const l2MessageStats = useQuery(GET_MSG_STATS, { client: clients.l2 });
   const toast = useToast();
   const location = useLocation();
 

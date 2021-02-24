@@ -14,11 +14,10 @@ type RelayedMessage @entity {
   msgHash: String!
 }
 
-# Withdrawal stats
-type Stats @entity {
+type MessageStats @entity {
   id: ID!
-  count: Int!
-  total: BigInt!
+  sentMessageCount: Int!
+  relayedMessageCount: Int!
 }
 
 type Withdrawal @entity {
@@ -28,4 +27,10 @@ type Withdrawal @entity {
   timestamp: Int!
   account: Bytes!
   amount: BigInt!
+}
+
+type WithdrawalStats @entity {
+  id: ID!
+  totalCount: Int!
+  totalAmount: BigInt!
 }
