@@ -3,11 +3,13 @@ type SentMessage @entity {
   id: ID!
   timestamp: Int!
   hash: String!
+  from: Bytes!
   message: Bytes!
 }
 
 type RelayedMessage @entity {
   id: ID!
+  to: Bytes!
   hash: String!
   timestamp: Int!
   msgHash: String!

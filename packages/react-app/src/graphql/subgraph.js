@@ -3,7 +3,7 @@ import { gql } from 'apollo-boost';
 export const getDeposits = indexTo => {
   const queryString = `
   ${indexTo ? `query deposits($indexTo: Int!)` : ''} {
-    deposits(first: 100, orderBy: index, orderDirection: asc ${indexTo ? `, where: { index_lt: $indexTo }` : ''}) {
+    deposits(first: 100, orderBy: index, orderDirection: desc ${indexTo ? `, where: { index_lt: $indexTo }` : ''}) {
       index
       account
       amount
@@ -30,24 +30,45 @@ export const getWithdrawals = indexTo => {
   return gql(queryString);
 };
 
-export const getSentMessages = searchHashes => {
-  const queryString = `
-  ${searchHashes ? `query sentMessages($searchHashes: [String!])` : ''} {
-    sentMessages(orderBy: timestamp, orderDirection: desc ${
-      searchHashes ? `, where: { hash_in: $searchHashes }` : ''
-    }) {
+export const getSentMessages = ({ searchHashes, indexTo } = {}) => {
+  let query = '';
+  const responseContent = ` {
       hash
+      from
       message
+      timestamp
     }
+  }`;
+  if (searchHashes && indexTo) {
+    query =
+      `
+    query sentMessages($searchHashes: [String!], $indexTo: Int!) {
+      sentMessages(first: 100, orderBy: timestamp, orderDirection: desc , where: { hash_in: $searchHashes, index_lt: $indexTo }) ` +
+      responseContent;
+  } else if (indexTo) {
+    query =
+      `
+    query sentMessages($indexTo: Int!) {
+      sentMessages(first: 100, orderBy: timestamp, orderDirection: desc , where: { index_lt: $indexTo }) ` +
+      responseContent;
+  } else if (searchHashes) {
+    query =
+      `
+    query sentMessages($searchHashes: [String!]) {
+      sentMessages(first: 100, orderBy: timestamp, orderDirection: desc , where: { hash_in: $searchHashes }) ` +
+      responseContent;
+  } else {
+    query =
+      `{
+  sentMessages(first: 100, orderBy: timestamp, orderDirection: desc) ` + responseContent;
   }
-`;
-  return gql(queryString);
+  return gql(query);
 };
 
 export const getRelayedMessages = searchHashes => {
   const queryString = `
   ${searchHashes ? `query relayedMessages($searchHashes: [String!])` : ''} {
-    relayedMessages(orderBy: timestamp, orderDirection: desc ${
+    relayedMessages(first: 100, orderBy: timestamp, orderDirection: desc ${
       searchHashes ? `, where: { msgHash_in: $searchHashes }` : ''
     }) {
       hash

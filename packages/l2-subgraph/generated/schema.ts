@@ -60,6 +60,15 @@ export class SentMessage extends Entity {
     this.set("hash", Value.fromString(value));
   }
 
+  get from(): Bytes {
+    let value = this.get("from");
+    return value.toBytes();
+  }
+
+  set from(value: Bytes) {
+    this.set("from", Value.fromBytes(value));
+  }
+
   get message(): Bytes {
     let value = this.get("message");
     return value.toBytes();
@@ -98,6 +107,15 @@ export class RelayedMessage extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get to(): Bytes {
+    let value = this.get("to");
+    return value.toBytes();
+  }
+
+  set to(value: Bytes) {
+    this.set("to", Value.fromBytes(value));
   }
 
   get hash(): string {

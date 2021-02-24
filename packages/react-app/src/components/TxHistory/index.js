@@ -10,7 +10,7 @@ function TxHistoryTable({
   price,
   isRefreshing,
   refreshTransactions,
-  totalCount,
+  totalTxCount,
   txsLoading,
   handleTokenSelection,
   currentTableView,
@@ -51,7 +51,8 @@ function TxHistoryTable({
           refreshTransactions={refreshTransactions}
           price={price}
           fetchMore={fetchMore}
-          totalCount={totalCount}
+          totalTxCount={totalTxCount}
+          direction={currentTableView}
         />
       </Box>
     </>

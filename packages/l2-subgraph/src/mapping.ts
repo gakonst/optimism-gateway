@@ -1,4 +1,4 @@
-import { BigInt } from '@graphprotocol/graph-ts';
+import { BigInt, Bytes } from '@graphprotocol/graph-ts';
 import { WithdrawalInitiated as WithdrawalInitiatedEvent } from '../generated/SynthetixBridgeToBase/SynthetixBridgeToBase';
 import {
   SentMessage as SentMessageEvent,
@@ -15,15 +15,17 @@ export function handleMessageRelayed(event: RelayedMessageEvent): void {
   if (stats == null) {
     stats = new MessageStats(STATS_ID);
     stats.relayedMessageCount = 0;
+    stats.sentMessageCount = 0;
   }
   stats.relayedMessageCount = stats.relayedMessageCount + 1;
   stats.save();
 
-  const msgReceived = new RelayedMessage(event.params.msgHash.toHex());
-  msgReceived.hash = event.transaction.hash.toHex();
-  msgReceived.timestamp = event.block.timestamp.toI32();
-  msgReceived.msgHash = event.params.msgHash.toHex();
-  msgReceived.save();
+  const relayedMessage = new RelayedMessage(event.params.msgHash.toHex());
+  relayedMessage.to = event.transaction.to as Bytes;
+  relayedMessage.hash = event.transaction.hash.toHex();
+  relayedMessage.timestamp = event.block.timestamp.toI32();
+  relayedMessage.msgHash = event.params.msgHash.toHex();
+  relayedMessage.save();
 }
 
 export function handleSentMessage(event: SentMessageEvent): void {
@@ -31,6 +33,7 @@ export function handleSentMessage(event: SentMessageEvent): void {
   let stats = MessageStats.load(STATS_ID);
   if (stats == null) {
     stats = new MessageStats(STATS_ID);
+    stats.relayedMessageCount = 0;
     stats.sentMessageCount = 0;
   }
   stats.sentMessageCount = stats.sentMessageCount + 1;
@@ -39,6 +42,7 @@ export function handleSentMessage(event: SentMessageEvent): void {
   const sentMessage = new SentMessage(event.transaction.hash.toHex() + '-' + event.logIndex.toString());
   sentMessage.timestamp = event.block.timestamp.toI32();
   sentMessage.hash = event.transaction.hash.toHex();
+  sentMessage.from = event.transaction.from;
   sentMessage.message = event.params.message;
   sentMessage.save();
 }
