@@ -253,7 +253,7 @@ export class Deposit extends Entity {
   }
 }
 
-export class DepositStats extends Entity {
+export class TxStats extends Entity {
   constructor(id: string) {
     super();
     this.set("id", Value.fromString(id));
@@ -261,17 +261,17 @@ export class DepositStats extends Entity {
 
   save(): void {
     let id = this.get("id");
-    assert(id !== null, "Cannot save DepositStats entity without an ID");
+    assert(id !== null, "Cannot save TxStats entity without an ID");
     assert(
       id.kind == ValueKind.STRING,
-      "Cannot save DepositStats entity with non-string ID. " +
+      "Cannot save TxStats entity with non-string ID. " +
         'Considering using .toHex() to convert the "id" to a string.'
     );
-    store.set("DepositStats", id.toString(), this);
+    store.set("TxStats", id.toString(), this);
   }
 
-  static load(id: string): DepositStats | null {
-    return store.get("DepositStats", id) as DepositStats | null;
+  static load(id: string): TxStats | null {
+    return store.get("TxStats", id) as TxStats | null;
   }
 
   get id(): string {

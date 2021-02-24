@@ -61,7 +61,7 @@ export const getRelayedMessages = searchHashes => {
 
 export const GET_MSG_STATS = gql`
   {
-    stats(id: "1") {
+    messageStats(id: "1") {
       sentMessageCount
       relayedMessageCount
     }
@@ -70,7 +70,7 @@ export const GET_MSG_STATS = gql`
 
 export const GET_TX_STATS = gql`
   {
-    stats(id: "1") {
+    txStats(id: "1") {
       totalCount
       totalAmount
     }

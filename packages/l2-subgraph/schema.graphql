@@ -29,7 +29,7 @@ type Withdrawal @entity {
   amount: BigInt!
 }
 
-type WithdrawalStats @entity {
+type TxStats @entity {
   id: ID!
   totalCount: Int!
   totalAmount: BigInt!

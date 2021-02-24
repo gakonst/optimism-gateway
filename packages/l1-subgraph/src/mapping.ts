@@ -4,7 +4,7 @@ import {
   SentMessage as SentMessageEvent,
 } from '../generated/OVM_CrossDomainMessenger/OVM_CrossDomainMessenger';
 import { Deposit as DepositEvent } from '../generated/SynthetixBridgeToOptimism/SynthetixBridgeToOptimism';
-import { RelayedMessage, Deposit, SentMessage, MessageStats, DepositStats } from '../generated/schema';
+import { RelayedMessage, Deposit, SentMessage, MessageStats, TxStats } from '../generated/schema';
 
 const STATS_ID = '1';
 
@@ -17,6 +17,7 @@ export function handleMessageRelayed(event: RelayedMessageEvent): void {
     stats.relayedMessageCount = 0;
   }
   stats.relayedMessageCount = stats.relayedMessageCount + 1;
+  stats.save();
 
   const msgReceived = new RelayedMessage(event.params.msgHash.toHex());
   msgReceived.hash = event.transaction.hash.toHex();
@@ -33,6 +34,7 @@ export function handleSentMessage(event: SentMessageEvent): void {
     stats.sentMessageCount = 0;
   }
   stats.sentMessageCount = stats.sentMessageCount + 1;
+  stats.save();
 
   const sentMessage = new SentMessage(event.transaction.hash.toHex() + '-' + event.logIndex.toString());
   sentMessage.timestamp = event.block.timestamp.toI32();
@@ -45,9 +47,9 @@ export function handleDeposit(event: DepositEvent): void {
   const deposit = new Deposit(event.transaction.hash.toHex());
 
   // create a stats entity if this is the first event, else update the existing one
-  let stats = DepositStats.load(STATS_ID);
+  let stats = TxStats.load(STATS_ID);
   if (stats == null) {
-    stats = new DepositStats(STATS_ID);
+    stats = new TxStats(STATS_ID);
     stats.totalCount = 0;
     stats.totalAmount = BigInt.fromI32(0);
   }

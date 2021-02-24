@@ -28,7 +28,7 @@ type Deposit @entity {
   amount: BigInt!
 }
 
-type DepositStats @entity {
+type TxStats @entity {
   id: ID!
   totalCount: Int!
   totalAmount: BigInt!

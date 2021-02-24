@@ -4,7 +4,7 @@ import DateTime from 'luxon/src/datetime.js';
 import { Fraction } from '@uniswap/sdk';
 import { ethers } from 'ethers';
 import { Box, Container, Heading, useToast, Flex } from '@chakra-ui/react';
-import { useQuery, useLazyQuery } from '@apollo/client';
+import { useQuery } from '@apollo/client';
 import SearchInput from './components/SearchInput';
 import TxHistoryTable from './components/TxHistory';
 import TokenSelector from './components/TokenSelector';
@@ -74,6 +74,9 @@ function App() {
   const toast = useToast();
   const location = useLocation();
 
+  console.log(l1MessageStats.data);
+  console.log(l2MessageStats.data);
+
   const setTransactions = transactions => {
     setTxsLoading(false);
     _setTransactions(transactions);
@@ -98,9 +101,23 @@ function App() {
 
   const refreshTransactions = async () => {
     if (isRefreshing) return;
-    setIsRefreshing(true);
-    await withdrawalsInitiated.refetch();
-    setIsRefreshing(false);
+    if (currentTableView === 'incoming') {
+      setIsRefreshing(true);
+      if (tokenSelection) {
+        await withdrawalsInitiated.refetch();
+      } else {
+        await sentMessagesFromL2.refetch();
+      }
+      setIsRefreshing(false);
+    } else if (currentTableView === 'outgoing') {
+      setIsRefreshing(true);
+      if (tokenSelection) {
+        await depositsInitiated.refetch();
+      } else {
+        await sentMessagesFromL1.refetch();
+      }
+      setIsRefreshing(false);
+    }
   };
 
   const processDeposits = React.useCallback(
@@ -391,15 +408,18 @@ function App() {
   return (
     <>
       <Container maxW={'1400px'} py={4}>
-        <Box as="header" d="flex">
-          <TokenSelector
-            handleTokenSelection={handleTokenSelection}
-            tokenSymbol={tokenSelection && tokenSelection.symbol}
-          />
+        <Box as="header" d="flex" justifyContent="center">
+          <Box pos="absolute" left={4}>
+            <TokenSelector
+              handleTokenSelection={handleTokenSelection}
+              tokenSymbol={tokenSelection && tokenSelection.symbol}
+            />
+          </Box>
+          <Heading as="h1" size="xl" textAlign="center" mt={4} mb={16} fontWeight="300 !important">
+            OΞ Transaction Tracker
+          </Heading>
+          <div />
         </Box>
-        <Heading as="h1" size="xl" textAlign="center" mt={8} mb={16} fontWeight="300 !important">
-          OΞ Transaction Tracker
-        </Heading>
         <Flex mb={16} w="600px" mx="auto">
           {tokenSelection && (
             <StatsTable

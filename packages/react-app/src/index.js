@@ -23,6 +23,7 @@ const theme = extendTheme({
         },
       },
       h1: {
+        fontSize: ['2.5rem !important', null, '3rem !important'],
         fontWeight: '500 !important',
         marginTop: '2rem',
       },
