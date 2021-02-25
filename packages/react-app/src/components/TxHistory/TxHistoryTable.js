@@ -165,18 +165,20 @@ function TxHistoryPanel({
                             .toRelative({ round: false })}
                     </Td>
                     <Td px={'0 1rem'} textAlign="left">
-                      {tx.layer1Hash && tx.otherLayerTimestamp ? (
+                      {tx.layer1Hash && tx.relayedTxTimestamp ? (
                         <>
                           <Dot color="#75cc74" />
-                          Completed{' '}
-                          {DateTime.fromMillis(tx.otherLayerTimestamp).toLocaleString(DateTime.DATETIME_SHORT)} (
+                          Completed {DateTime.fromMillis(tx.relayedTxTimestamp).toLocaleString(
+                            DateTime.DATETIME_SHORT
+                          )}{' '}
+                          (
                           {Interval.fromDateTimes(
                             DateTime.fromMillis(tx.timestamp),
-                            DateTime.fromMillis(tx.otherLayerTimestamp)
+                            DateTime.fromMillis(tx.relayedTxTimestamp)
                           )
                             .toDuration(daysOrMinutes)
                             .toObject()
-                            [daysOrMinutes].toFixed(2)}{' '}
+                            [daysOrMinutes]?.toFixed(2)}{' '}
                           {daysOrMinutes})
                         </>
                       ) : isRefreshing ? (

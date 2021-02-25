@@ -117,39 +117,48 @@ function App() {
     }
   };
 
+  const getFilteredRelayedTxs = React.useCallback(async (sentMsgTxs, relayedMsgTxs) => {
+    const sentMsgHashes = sentMsgTxs.map(msgTx => {
+      return ethers.utils.solidityKeccak256(['bytes'], [msgTx.message]);
+    });
+    const relayedTxs = (
+      await relayedMsgTxs.fetchMore({
+        variables: { searchHashes: sentMsgHashes },
+        query: getRelayedMessages(sentMsgHashes),
+      })
+    ).data.relayedMessages;
+    return relayedTxs;
+  }, []);
+
+  /**
+   * Prepares deposit data after getting ancillary data from cross domain messenger events
+   */
   const processDeposits = React.useCallback(
     async rawDeposits => {
       // retrieve relevant messages based on this batch of tx timestamps
       const depositL1TxHashes = rawDeposits.map(tx => tx.hash);
-      const currentSentMsgs = (
+      const sentMsgTxs = (
         await sentMessagesFromL1.fetchMore({
           variables: { searchHashes: depositL1TxHashes },
           query: getSentMessages({ searchHashes: depositL1TxHashes }),
         })
       ).data.sentMessages;
-      const sentMsgHashes = currentSentMsgs.map(msgTx => {
-        return ethers.utils.solidityKeccak256(['bytes'], [msgTx.message]);
-      });
-      const currentRelayedMsgs = (
-        await relayedMessagesOnL2.fetchMore({
-          variables: { searchHashes: sentMsgHashes },
-          query: getRelayedMessages(sentMsgHashes),
-        })
-      ).data.relayedMessages;
+
+      const relayedTxs = await getFilteredRelayedTxs(sentMsgTxs, relayedMessagesOnL2);
 
       let deposits = rawDeposits.map(rawTx => {
         const tx = { ...rawTx };
         tx.from = tx.account;
         tx.layer1Hash = tx.hash;
         tx.timestamp = tx.timestamp * 1000;
-        const sentMessage = currentSentMsgs.find(msgTx => msgTx.hash === tx.hash);
+        const sentMessage = sentMsgTxs.find(msgTx => msgTx.hash === tx.hash);
         const sentMsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
         const [from, to] = decodeSentMessage(sentMessage.message);
         tx.to = to;
-        const relayedTx = currentRelayedMsgs.find(msg => msg.msgHash === sentMsgHash);
+        const relayedTx = relayedTxs.find(msg => msg.msgHash === sentMsgHash);
         tx.layer2Hash = relayedTx?.hash;
         tx.awaitingRelay = !tx.layer2Hash;
-        tx.otherLayerTimestamp = relayedTx && relayedTx.timestamp * 1000;
+        tx.relayedTxTimestamp = relayedTx && relayedTx.timestamp * 1000;
         delete tx.hash;
         return tx;
       });
@@ -162,39 +171,33 @@ function App() {
       setDepositAmountPending(amountPending.divide((1e18).toString()).toFixed(2));
       return deposits.sort((a, b) => b.timestamp - a.timestamp);
     },
-    [relayedMessagesOnL2, sentMessagesFromL1]
+    [getFilteredRelayedTxs, relayedMessagesOnL2, sentMessagesFromL1]
   );
 
+  /**
+   * Prepares withdrawal data after getting ancillary data from cross domain messenger events
+   */
   const processWithdrawals = React.useCallback(
     async rawWithdrawals => {
       // retrieve relevant messages based on this batch of tx timestamps
       const withdrawalL2TxHashes = rawWithdrawals.map(tx => tx.hash);
-      const currentSentMsgs = (
+      const sentMsgTxs = (
         await sentMessagesFromL2.fetchMore({
           variables: { searchHashes: withdrawalL2TxHashes },
           query: getSentMessages({ searchHashes: withdrawalL2TxHashes }),
         })
       ).data.sentMessages;
 
-      const sentMsgHashes = currentSentMsgs.map(msgTx => {
-        return ethers.utils.solidityKeccak256(['bytes'], [msgTx.message]);
-      });
-
-      const currentRelayedMsgs = (
-        await relayedMessagesOnL1.fetchMore({
-          variables: { searchHashes: sentMsgHashes },
-          query: getRelayedMessages(sentMsgHashes),
-        })
-      ).data.relayedMessages;
+      const relayedTxs = await getFilteredRelayedTxs(sentMsgTxs, relayedMessagesOnL1);
 
       let withdrawals = rawWithdrawals.map(rawTx => {
         const tx = { ...rawTx };
         tx.from = tx.account;
         tx.layer2Hash = tx.hash;
         tx.timestamp = tx.timestamp * 1000;
-        const sentMessage = currentSentMsgs.find(msgTx => msgTx.hash === tx.hash);
+        const sentMessage = sentMsgTxs.find(msgTx => msgTx.hash === tx.hash);
         const sentMsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
-        const relayedTx = currentRelayedMsgs.find(msg => msg.msgHash === sentMsgHash);
+        const relayedTx = relayedTxs.find(msg => msg.msgHash === sentMsgHash);
         const [from, to] = decodeSentMessage(sentMessage.message);
         tx.to = to;
         tx.layer1Hash = relayedTx?.hash;
@@ -203,7 +206,7 @@ function App() {
           DateTime.fromMillis(tx.timestamp)
             .plus({ days: 7 })
             .toMillis() < Date.now();
-        tx.otherLayerTimestamp = relayedTx && relayedTx.timestamp * 1000;
+        tx.relayedTxTimestamp = relayedTx && relayedTx.timestamp * 1000;
         delete tx.hash;
         return tx;
       });
@@ -216,7 +219,7 @@ function App() {
       setWithdrawalAmountPending(amountPending.divide((1e18).toString()).toFixed(2));
       return withdrawals.sort((a, b) => b.timestamp - a.timestamp);
     },
-    [relayedMessagesOnL1, sentMessagesFromL2]
+    [getFilteredRelayedTxs, relayedMessagesOnL1, sentMessagesFromL2]
   );
 
   const fetchTransactions = React.useCallback(
@@ -239,8 +242,7 @@ function App() {
           setTotalTxCount(depositStats.data.txStats.totalCount);
           setTransactions(deposits);
         } else {
-          // todo: get all incoming transactions
-          console.log(firstTx, lastTx);
+          console.log('todo: get all incoming transactions');
         }
       } else if (currentTableView === panels.OUTGOING) {
         if (tokenSelection && withdrawalStats.data) {
@@ -347,18 +349,25 @@ function App() {
     }
   };
 
-  const processPageOfxDomainTxs = React.useCallback(async (layer, sentMessages, totalMessageCount, indexTo) => {
-    // all outgoing messages/transactions
-    setTxsLoading(true);
-    let txs = (
-      await sentMessages.fetchMore({
-        query: getSentMessages({ indexTo }),
-      })
-    ).data.sentMessages;
-    txs = txs.map(tx => processSentMessage(tx, layer));
-    setTransactions(txs);
-    setTxsLoading(false);
-  }, []);
+  const processPageOfxDomainTxs = React.useCallback(
+    async (layer, sentMessages, totalMessageCount, indexTo) => {
+      setTxsLoading(true);
+      setTotalTxCount(totalMessageCount);
+      let sentMsgTxs = (
+        await sentMessages.fetchMore({
+          query: getSentMessages({ indexTo }),
+        })
+      ).data.sentMessages;
+      const relayedTxs = await getFilteredRelayedTxs(
+        sentMsgTxs,
+        layer === 1 ? relayedMessagesOnL2 : relayedMessagesOnL1
+      );
+      const txs = sentMsgTxs.map(tx => processSentMessage(tx, layer, relayedTxs));
+      setTransactions(txs);
+      setTxsLoading(false);
+    },
+    [getFilteredRelayedTxs, relayedMessagesOnL1, relayedMessagesOnL2]
+  );
 
   React.useEffect(() => {
     if (!queryParams && location) {
@@ -379,7 +388,6 @@ function App() {
           setTokenSelection(tokens[tokenSymbol]);
           resetPricePoller(tokens[tokenSymbol].coingeckoId);
         }
-
         const direction = queryParams.get('dir') || 'incoming';
         if (direction === 'incoming') {
           if (tokenSymbol && depositsInitiated.data) {
@@ -437,7 +445,6 @@ function App() {
   React.useEffect(() => {
     (async () => {
       if (!transactions || !price || !withdrawalAmountPending) return;
-
       const diff = +l1TotalAmt - +l2TotalAmt - withdrawalAmountPending;
       setl1VsL2WithdrawalDiff(diff.toFixed(2));
     })();
