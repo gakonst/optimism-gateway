@@ -6,7 +6,7 @@ import Table from './TxHistoryTable';
 function TxHistoryTable({
   transactions,
   handleTableViewChange,
-  fetchMore,
+  fetchTransactions,
   price,
   isRefreshing,
   refreshTransactions,
@@ -15,6 +15,7 @@ function TxHistoryTable({
   handleTokenSelection,
   currentTableView,
   queryParams,
+  isFetchingMore,
 }) {
   const history = useHistory();
 
@@ -45,12 +46,13 @@ function TxHistoryTable({
           </Button>
         </HStack>
         <Table
+          isFetchingMore={isFetchingMore}
           txsLoading={txsLoading}
           isRefreshing={isRefreshing}
           transactions={transactions}
           refreshTransactions={refreshTransactions}
           price={price}
-          fetchMore={fetchMore}
+          fetchTransactions={fetchTransactions}
           totalTxCount={totalTxCount}
           direction={currentTableView}
         />

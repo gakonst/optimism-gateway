@@ -35,7 +35,8 @@ function TxHistoryPanel({
   transactions,
   refreshTransactions,
   price,
-  fetchMore,
+  fetchTransactions,
+  isFetchingMore,
   isInitialPage,
   totalTxCount,
   direction,
@@ -45,7 +46,7 @@ function TxHistoryPanel({
   const {
     params: { address },
   } = useRouteMatch();
-
+  const [lastBtnClicked, setLastBtnClicked] = React.useState();
   const addressCharLength = 10;
 
   const shortenAddress = address =>
@@ -77,7 +78,8 @@ function TxHistoryPanel({
     );
   };
 
-  const daysOrMinutes = direction == 'outgoing' ? 'days' : 'minutes';
+  const daysOrMinutes = direction === 'outgoing' ? 'days' : 'minutes';
+
   return (
     <>
       {txsLoading || !transactions ? (
@@ -228,23 +230,29 @@ function TxHistoryPanel({
               d="flex"
               mx="auto"
               mt={8}
-              onClick={() => fetchMore('prev')}
+              w="120px"
+              onClick={() => {
+                setLastBtnClicked('prev');
+                fetchTransactions({ page: 'prev' });
+              }}
               // descending order, so we're at the start of the list if the index === totalTxCount
               disabled={transactions[0].index + 1 === totalTxCount}
             >
-              Prev page
-              {/* <Spinner ml={2} size="sm" /> */}
+              {isFetchingMore && lastBtnClicked === 'prev' ? <Spinner ml={2} size="sm" /> : 'Prev page'}
             </Button>
             <Button
               d="flex"
               mx="auto"
               mt={8}
-              onClick={() => fetchMore('next')}
+              w="120px"
+              onClick={() => {
+                setLastBtnClicked('next');
+                fetchTransactions({ page: 'next' });
+              }}
               // descending order, so we're at the end of the list if the index === 0
               disabled={transactions[transactions.length - 1].index === 0}
             >
-              Next page
-              {/* <Spinner ml={2} size="sm" /> */}
+              {isFetchingMore && lastBtnClicked === 'next' ? <Spinner ml={2} size="sm" /> : 'Next page'}
             </Button>
           </Center>
         </>

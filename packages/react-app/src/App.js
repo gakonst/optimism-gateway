@@ -43,6 +43,7 @@ function App() {
   const [l2TotalAmt, setl2TotalAmt] = React.useState(null);
   const [l1VsL2WithdrawalDiff, setl1VsL2WithdrawalDiff] = React.useState(null);
   const [txsLoading, setTxsLoading] = React.useState(false);
+  const [isFetchingMore, setIsFetchingMore] = React.useState(false);
   const [tokenSelection, setTokenSelection] = React.useState(null);
   const [priceIntervalId, setPriceIntervalId] = React.useState(null);
   const [queryParams, setQueryParams] = React.useState(null);
@@ -77,6 +78,18 @@ function App() {
   const setTransactions = transactions => {
     _setTransactions(transactions);
     setTxsLoading(false);
+    setIsFetchingMore(false);
+  };
+
+  const setTxAmountPending = (type, transactions) => {
+    const setter = type === 'withdrawals' ? setWithdrawalAmountPending : setDepositAmountPending;
+    const amountPending = transactions.reduce((total, tx) => {
+      if ((type === 'withdrawals' && !tx.layer1Hash) || (type === 'deposits' && !tx.layer2Hash)) {
+        total = total.add(tx.amount);
+      }
+      return total;
+    }, new Fraction(0));
+    setter(amountPending.divide((1e18).toString()).toFixed(2));
   };
 
   /**
@@ -153,7 +166,7 @@ function App() {
         tx.timestamp = tx.timestamp * 1000;
         const sentMessage = sentMsgTxs.find(msgTx => msgTx.hash === tx.hash);
         const sentMsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
-        const [from, to] = decodeSentMessage(sentMessage.message);
+        const [_, to] = decodeSentMessage(sentMessage.message);
         tx.to = to;
         const relayedTx = relayedTxs.find(msg => msg.msgHash === sentMsgHash);
         tx.layer2Hash = relayedTx?.hash;
@@ -162,13 +175,7 @@ function App() {
         delete tx.hash;
         return tx;
       });
-      const amountPending = deposits.reduce((total, tx) => {
-        if (!tx.layer2Hash) {
-          total = total.add(tx.amount);
-        }
-        return total;
-      }, new Fraction(0));
-      setDepositAmountPending(amountPending.divide((1e18).toString()).toFixed(2));
+      setTxAmountPending('deposits', deposits);
       return deposits.sort((a, b) => b.timestamp - a.timestamp);
     },
     [getFilteredRelayedTxs, relayedMessagesOnL2, sentMessagesFromL1]
@@ -198,7 +205,7 @@ function App() {
         const sentMessage = sentMsgTxs.find(msgTx => msgTx.hash === tx.hash);
         const sentMsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
         const relayedTx = relayedTxs.find(msg => msg.msgHash === sentMsgHash);
-        const [from, to] = decodeSentMessage(sentMessage.message);
+        const [_, to] = decodeSentMessage(sentMessage.message);
         tx.to = to;
         tx.layer1Hash = relayedTx?.hash;
         tx.awaitingRelay =
@@ -210,69 +217,128 @@ function App() {
         delete tx.hash;
         return tx;
       });
-      const amountPending = withdrawals.reduce((total, tx) => {
-        if (!tx.layer1Hash) {
-          total = total.add(tx.amount);
-        }
-        return total;
-      }, new Fraction(0));
-      setWithdrawalAmountPending(amountPending.divide((1e18).toString()).toFixed(2));
+
+      setTxAmountPending('withdrawals', withdrawals);
       return withdrawals.sort((a, b) => b.timestamp - a.timestamp);
     },
     [getFilteredRelayedTxs, relayedMessagesOnL1, sentMessagesFromL2]
   );
 
+  const processPageOfxDomainTxs = React.useCallback(
+    async (layer, sentMessages, totalMessageCount, indexTo) => {
+      setIsFetchingMore(true);
+      setTotalTxCount(totalMessageCount);
+
+      let sentMsgTxs = (
+        await sentMessages.fetchMore({
+          query: getSentMessages({ indexTo }),
+          variables: {
+            indexTo,
+          },
+        })
+      ).data.sentMessages;
+      const relayedTxs = await getFilteredRelayedTxs(
+        sentMsgTxs,
+        layer === 1 ? relayedMessagesOnL2 : relayedMessagesOnL1
+      );
+      const txs = sentMsgTxs.map(tx => processSentMessage(tx, layer, relayedTxs));
+      setTransactions(txs);
+    },
+    [getFilteredRelayedTxs, relayedMessagesOnL1, relayedMessagesOnL2]
+  );
+
   const fetchTransactions = React.useCallback(
-    async page => {
+    async ({ page, token: _token }) => {
+      const token = _token || tokenSelection;
+      if (!!page) {
+        setIsFetchingMore(true);
+      } else {
+        setTxsLoading(true);
+      }
+
       const firstTx = transactions && transactions[0];
       const lastTx = transactions && transactions[transactions.length - 1];
+
+      // If page isn't specified, start from the start of the list
       const indexTo = !page || !transactions ? 0 : page === 'prev' ? firstTx.index + FETCH_LIMIT + 1 : lastTx.index;
       if (currentTableView === panels.INCOMING) {
-        if (tokenSelection && depositStats.data) {
-          const more = await depositsInitiated.fetchMore({
-            variables: {
-              indexTo,
-            },
-            query: getDeposits(indexTo),
-            updateQuery: (prev, { fetchMoreResult }) => {
-              return Object.assign(prev, fetchMoreResult);
-            },
-          });
-          const deposits = await processDeposits(more.data.deposits);
+        // fetch deposits
+        if (token) {
+          if (!page) {
+            const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
+            setTxAmountPending('withdrawals', withdrawals);
+          }
+          const txs = !page
+            ? depositsInitiated
+            : await depositsInitiated.fetchMore({
+                variables: {
+                  indexTo,
+                },
+                query: getDeposits(indexTo),
+                updateQuery: (prev, { fetchMoreResult }) => {
+                  return Object.assign(prev, fetchMoreResult);
+                },
+              });
           setTotalTxCount(depositStats.data.txStats.totalCount);
+          const deposits = await processDeposits(txs.data.deposits);
           setTransactions(deposits);
-        } else {
-          console.log('todo: get all incoming transactions');
+        } else if (l1MessageStats.data) {
+          // fetch all incoming txs (not just deposits)
+          await processPageOfxDomainTxs(
+            1,
+            sentMessagesFromL1,
+            l1MessageStats.data.messageStats.sentMessageCount,
+            indexTo
+          );
         }
       } else if (currentTableView === panels.OUTGOING) {
-        if (tokenSelection && withdrawalStats.data) {
-          const more = await withdrawalsInitiated.fetchMore({
-            variables: {
-              indexTo,
-            },
-            query: getWithdrawals(indexTo),
-            updateQuery: (prev, { fetchMoreResult }) => {
-              return Object.assign(prev, fetchMoreResult);
-            },
-          });
-          const withdrawals = await processWithdrawals(more.data.withdrawals);
+        if (token) {
+          if (!page) {
+            const deposits = await processDeposits(depositsInitiated.data.deposits);
+            setTxAmountPending('deposits', deposits);
+          }
+          // fetch withdrawals
+          const txs = !page
+            ? withdrawalsInitiated
+            : await withdrawalsInitiated.fetchMore({
+                variables: {
+                  indexTo,
+                },
+                query: getWithdrawals(indexTo),
+                updateQuery: (prev, { fetchMoreResult }) => {
+                  return Object.assign(prev, fetchMoreResult);
+                },
+              });
           setTotalTxCount(withdrawalStats.data.txStats.totalCount);
+          const withdrawals = await processWithdrawals(txs.data.withdrawals);
           setTransactions(withdrawals);
-        } else {
-          // todo: get all outgoing transactions
+        } else if (l2MessageStats.data) {
+          // fetch all outgoing txs (not just withdrawals)
+          await processPageOfxDomainTxs(
+            2,
+            sentMessagesFromL2,
+            l2MessageStats.data.messageStats.sentMessageCount,
+            indexTo
+          );
         }
       }
+      setIsFetchingMore(false);
     },
     [
+      transactions,
       currentTableView,
       tokenSelection,
+      depositStats.data,
       depositsInitiated,
       processDeposits,
-      depositStats.data,
-      transactions,
+      processPageOfxDomainTxs,
+      sentMessagesFromL1,
+      l1MessageStats.data,
+      withdrawalStats.data,
       withdrawalsInitiated,
       processWithdrawals,
-      withdrawalStats.data,
+      sentMessagesFromL2,
+      l2MessageStats.data,
     ]
   );
 
@@ -284,7 +350,6 @@ function App() {
     } else {
       queryParams.delete('token');
       setTokenSelection(null);
-      // todo: fetch & set all incoming/outgoing transactions
     }
     history.push({
       search: queryParams.toString(),
@@ -292,7 +357,7 @@ function App() {
     const token = tokens[tokenSymbol];
     setTokenSelection(token);
     resetPricePoller(token ? token.coingeckoId : '');
-    fetchTransactions();
+    fetchTransactions({ token });
   };
 
   const resetPricePoller = React.useCallback(
@@ -329,82 +394,92 @@ function App() {
       setTxsLoading(true);
       if (tokenSelection) {
         if (depositsInitiated.data) {
+          setTotalTxCount(depositStats.data.txStats.totalCount);
           const deposits = await processDeposits(depositsInitiated.data.deposits);
           setTransactions(deposits);
         }
       } else if (l1MessageStats.data) {
         // show all incoming txs
-        processPageOfxDomainTxs(1, sentMessagesFromL1, l1MessageStats.data.sentMessageCount);
+        await processPageOfxDomainTxs(1, sentMessagesFromL1, l1MessageStats.data.messageStats.sentMessageCount);
       }
     } else if (direction === panels.OUTGOING) {
       setTxsLoading(true);
       if (tokenSelection) {
         if (withdrawalsInitiated.data) {
+          setTotalTxCount(withdrawalStats.data.txStats.totalCount);
           const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
           setTransactions(withdrawals);
         }
       } else if (l2MessageStats.data) {
-        processPageOfxDomainTxs(2, sentMessagesFromL2, l2MessageStats.data.sentMessageCount);
+        await processPageOfxDomainTxs(2, sentMessagesFromL2, l2MessageStats.data.messageStats.sentMessageCount);
       }
     }
   };
 
-  const processPageOfxDomainTxs = React.useCallback(
-    async (layer, sentMessages, totalMessageCount, indexTo) => {
-      setTxsLoading(true);
-      setTotalTxCount(totalMessageCount);
-      let sentMsgTxs = (
-        await sentMessages.fetchMore({
-          query: getSentMessages({ indexTo }),
-        })
-      ).data.sentMessages;
-      const relayedTxs = await getFilteredRelayedTxs(
-        sentMsgTxs,
-        layer === 1 ? relayedMessagesOnL2 : relayedMessagesOnL1
-      );
-      const txs = sentMsgTxs.map(tx => processSentMessage(tx, layer, relayedTxs));
-      setTransactions(txs);
-      setTxsLoading(false);
-    },
-    [getFilteredRelayedTxs, relayedMessagesOnL1, relayedMessagesOnL2]
-  );
-
+  /**
+   * Sets query params object
+   */
   React.useEffect(() => {
     if (!queryParams && location) {
       const params = new URLSearchParams(location.search.slice(1));
-      setCurrentTableView(params.get('dir') || 'incoming');
+      const token = params.get('token');
+      const dir = params.get('dir');
+      setCurrentTableView(dir || 'incoming');
+
+      if (token) {
+        setTokenSelection(tokens[token]);
+      }
       setQueryParams(params);
     }
   }, [location, queryParams]);
 
   /**
-   * Parses query params to establish page's initial state
+   * Fetches on initial page load and if tokenSymbol changes
    */
   React.useEffect(() => {
     (async () => {
-      if (queryParams && !transactions) {
-        const tokenSymbol = queryParams.get('token');
-        if (tokenSymbol && !price && !fetchingPrice) {
-          setTokenSelection(tokens[tokenSymbol]);
-          resetPricePoller(tokens[tokenSymbol].coingeckoId);
-        }
+      if (
+        queryParams &&
+        !transactions &&
+        !txsLoading &&
+        depositsInitiated.data &&
+        withdrawalsInitiated.data &&
+        depositStats.data &&
+        withdrawalStats.data &&
+        l1MessageStats.data &&
+        l2MessageStats.data
+      ) {
+        setTxsLoading(true);
+        const tokenSymbol = tokenSelection?.symbol;
         const direction = queryParams.get('dir') || 'incoming';
+
+        if (tokenSelection?.coingeckoId) {
+          resetPricePoller(tokenSelection.coingeckoId);
+        }
         if (direction === 'incoming') {
-          if (tokenSymbol && depositsInitiated.data) {
+          if (tokenSymbol) {
+            const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
+            setTxAmountPending('withdrawals', withdrawals);
             const deposits = await processDeposits(depositsInitiated.data.deposits);
             setTransactions(deposits);
-          } else if (l1MessageStats.data) {
+            setTotalTxCount(depositStats.data.txStats.totalCount);
+          } else {
+            console.log('fetching all incoming txs');
             // all incoming messages/transactions
-            processPageOfxDomainTxs(1, sentMessagesFromL1, l1MessageStats.data.sentMessageCount);
+            await processPageOfxDomainTxs(1, sentMessagesFromL1, l1MessageStats.data.messageStats.sentMessageCount);
           }
         } else {
           // direction === 'outgoing'
-          if (tokenSymbol && withdrawalsInitiated.data) {
+          if (tokenSymbol) {
+            const deposits = await processDeposits(depositsInitiated.data.deposits);
+            setTxAmountPending('deposits', deposits);
             const withdrawals = await processWithdrawals(withdrawalsInitiated.data.withdrawals);
+            setTotalTxCount(withdrawalStats.data.txStats.totalCount);
             setTransactions(withdrawals);
-          } else if (l2MessageStats.data) {
+          } else {
+            console.log('fetching all outgoing txs');
             // all outgoing messages/transactions
-            processPageOfxDomainTxs(2, sentMessagesFromL2, l2MessageStats.data.sentMessageCount);
+            await processPageOfxDomainTxs(2, sentMessagesFromL2, l2MessageStats.data.messageStats.sentMessageCount);
           }
         }
       }
@@ -414,7 +489,9 @@ function App() {
     fetchTransactions,
     processWithdrawals,
     withdrawalsInitiated.data,
+    withdrawalStats.data,
     depositsInitiated.data,
+    depositStats.data,
     resetPricePoller,
     price,
     fetchingPrice,
@@ -426,12 +503,10 @@ function App() {
     processPageOfxDomainTxs,
     l1MessageStats.data,
     l2MessageStats.data,
+    tokenSelection,
+    txsLoading,
     transactions,
   ]);
-
-  React.useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions, tokenSelection]);
 
   React.useEffect(() => {
     (async () => {
@@ -449,6 +524,11 @@ function App() {
       setl1VsL2WithdrawalDiff(diff.toFixed(2));
     })();
   }, [l1TotalAmt, l2TotalAmt, price, transactions, withdrawalAmountPending]);
+
+  // if (transactions) {
+  //   console.log('totalTxCount', totalTxCount);
+  //   console.log('intransactions[0].indexdex', transactions[0].index);
+  // }
 
   return (
     <>
@@ -502,8 +582,8 @@ function App() {
               transactions={transactions}
               txsLoading={txsLoading}
               handleTableViewChange={handleTableViewChange}
-              fetchMore={fetchTransactions}
-              // isLoadingMore={isLoadingMore}
+              fetchTransactions={fetchTransactions}
+              isFetchingMore={isFetchingMore}
               currentTableView={currentTableView}
               price={price}
               refreshTransactions={refreshTransactions}

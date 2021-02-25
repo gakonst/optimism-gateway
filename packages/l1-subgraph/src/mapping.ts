@@ -17,14 +17,16 @@ export function handleMessageRelayed(event: RelayedMessageEvent): void {
     stats.relayedMessageCount = 0;
     stats.sentMessageCount = 0;
   }
-  stats.relayedMessageCount = stats.relayedMessageCount + 1;
-  stats.save();
 
   const relayedMessage = new RelayedMessage(event.params.msgHash.toHex());
   relayedMessage.to = event.transaction.to as Bytes;
   relayedMessage.hash = event.transaction.hash.toHex();
   relayedMessage.timestamp = event.block.timestamp.toI32();
   relayedMessage.msgHash = event.params.msgHash.toHex();
+  relayedMessage.index = stats.relayedMessageCount;
+
+  stats.relayedMessageCount = stats.relayedMessageCount + 1;
+  stats.save();
   relayedMessage.save();
 }
 
@@ -36,14 +38,16 @@ export function handleSentMessage(event: SentMessageEvent): void {
     stats.relayedMessageCount = 0;
     stats.sentMessageCount = 0;
   }
-  stats.sentMessageCount = stats.sentMessageCount + 1;
-  stats.save();
 
   const sentMessage = new SentMessage(event.transaction.hash.toHex() + '-' + event.logIndex.toString());
   sentMessage.timestamp = event.block.timestamp.toI32();
   sentMessage.hash = event.transaction.hash.toHex();
   sentMessage.from = event.transaction.from;
   sentMessage.message = event.params.message;
+  sentMessage.index = stats.sentMessageCount;
+
+  stats.sentMessageCount = stats.sentMessageCount + 1;
+  stats.save();
   sentMessage.save();
 }
 

@@ -37,30 +37,31 @@ export const getSentMessages = ({ searchHashes, indexTo } = {}) => {
       from
       message
       timestamp
+      index
     }
   }`;
   if (searchHashes && indexTo) {
     query =
       `
     query sentMessages($searchHashes: [String!], $indexTo: Int!) {
-      sentMessages(first: 100, orderBy: timestamp, orderDirection: desc , where: { hash_in: $searchHashes, index_lt: $indexTo }) ` +
+      sentMessages(first: 100, orderBy: index, orderDirection: desc , where: { hash_in: $searchHashes, index_lt: $indexTo }) ` +
       responseContent;
   } else if (indexTo) {
     query =
       `
     query sentMessages($indexTo: Int!) {
-      sentMessages(first: 100, orderBy: timestamp, orderDirection: desc , where: { index_lt: $indexTo }) ` +
+      sentMessages(first: 100, orderBy: index, orderDirection: desc , where: { index_lt: $indexTo }) ` +
       responseContent;
   } else if (searchHashes) {
     query =
       `
     query sentMessages($searchHashes: [String!]) {
-      sentMessages(first: 100, orderBy: timestamp, orderDirection: desc , where: { hash_in: $searchHashes }) ` +
+      sentMessages(first: 100, orderBy: index, orderDirection: desc , where: { hash_in: $searchHashes }) ` +
       responseContent;
   } else {
     query =
       `{
-  sentMessages(first: 100, orderBy: timestamp, orderDirection: desc) ` + responseContent;
+  sentMessages(first: 100, orderBy: index, orderDirection: desc) ` + responseContent;
   }
   return gql(query);
 };

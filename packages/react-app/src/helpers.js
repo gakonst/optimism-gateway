@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import { abis } from '@project/contracts';
+import DateTime from 'luxon/src/datetime.js';
 
 const xDomainInterface = new ethers.utils.Interface(abis.XDomainMessenger);
 
@@ -47,11 +48,13 @@ export const processSentMessage = (rawTx, layer, relayedTxs) => {
     tx.layer2Hash = relayedTx?.hash;
   } else {
     tx.layer1Hash = relayedTx?.hash;
-
     tx.layer2Hash = tx.hash;
+    tx.awaitingRelay =
+      !tx.layer1Hash &&
+      DateTime.fromMillis(tx.timestamp)
+        .plus({ days: 7 })
+        .toMillis() < Date.now();
   }
-  if (relayedTx) {
-    tx.relayedTxTimestamp = relayedTx.timestamp * 1000;
-  }
+  tx.relayedTxTimestamp = relayedTx && relayedTx.timestamp * 1000;
   return tx;
 };

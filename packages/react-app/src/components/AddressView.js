@@ -91,7 +91,7 @@ function AddressView({
         deposits={filteredDeposits}
         withdrawals={filteredWithdrawals}
         getTransactions={getTransactions}
-        isLoadingMore={false}
+        isFetchingMore={false}
         price={price}
         refreshTransactions={refreshTransactions}
         isRefreshing={isRefreshing}
