@@ -554,7 +554,7 @@ function App() {
               l2TotalAmt={l2TotalAmt}
               l1TotalAmt={l1TotalAmt}
               l1VsL2lDiff={l1VsL2WithdrawalDiff}
-              token={tokenSelection}
+              tokenSelection={tokenSelection}
             />
           )}
         </Flex>
@@ -591,6 +591,7 @@ function App() {
               totalTxCount={totalTxCount} // TODO: make all subgraph queries return a totalCount
               handleTokenSelection={handleTokenSelection}
               queryParams={queryParams}
+              tokenSelection={tokenSelection}
             />
           </Route>
         </Switch>

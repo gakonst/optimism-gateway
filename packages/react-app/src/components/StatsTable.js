@@ -9,13 +9,13 @@ function StatsTable({
   price,
   l1TotalAmt,
   l1VsL2lDiff,
-  token,
+  tokenSelection,
 }) {
   return (
     <Box border="1px solid rgba(255, 255, 255, 0.16)" borderRadius="5px" padding={4}>
       <Heading as="h3" d="flex" size="md" fontWeight="300" alignItems="center" justifyContent="center" mb={8} mt={1}>
-        <Image src={token.iconURL} borderRadius="100%" mr={2} h={'20px'} w={'20px'} />
-        {token.name} | {token.symbol}
+        <Image src={tokenSelection.iconURL} borderRadius="100%" mr={2} h={'20px'} w={'20px'} />
+        {tokenSelection.name} | {tokenSelection.symbol}
       </Heading>
       <Table size="sm" variant="unstyled">
         <Thead>

@@ -16,6 +16,7 @@ function TxHistoryTable({
   currentTableView,
   queryParams,
   isFetchingMore,
+  tokenSelection,
 }) {
   const history = useHistory();
 
@@ -55,6 +56,7 @@ function TxHistoryTable({
           fetchTransactions={fetchTransactions}
           totalTxCount={totalTxCount}
           direction={currentTableView}
+          tokenSelection={tokenSelection}
         />
       </Box>
     </>
