@@ -170,7 +170,6 @@ function App() {
         tx.to = to;
         const relayedTx = relayedTxs.find(msg => msg.msgHash === sentMsgHash);
         tx.layer2Hash = relayedTx?.hash;
-        tx.awaitingRelay = !tx.layer2Hash;
         tx.relayedTxTimestamp = relayedTx && relayedTx.timestamp * 1000;
         delete tx.hash;
         return tx;
