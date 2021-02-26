@@ -4,7 +4,7 @@ import DateTime from 'luxon/src/datetime.js';
 
 const xDomainInterface = new ethers.utils.Interface(abis.XDomainMessenger);
 
-export const formatNumber = num => {
+export const formatNumber = (num: number | string) => {
   return new Intl.NumberFormat('en-US', { maximumSignificantDigits: 20 }).format(+num);
 };
 
@@ -31,11 +31,16 @@ export const getBrowserLocales = (options = {}) => {
   });
 };
 
-export const formatUSD = num => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
+export const formatUSD = (num: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
 
-export const decodeSentMessage = message => xDomainInterface.decodeFunctionData('relayMessage', message);
+export const decodeSentMessage = (message: string) => xDomainInterface.decodeFunctionData('relayMessage', message);
 
-export const processSentMessage = (rawTx, layer, relayedTxs) => {
+export const processSentMessage = (
+  rawTx: Transaction,
+  layer: number,
+  relayedTxs: { msgHash: string; hash: string; timestamp: number }[]
+) => {
   const tx = { ...rawTx };
   const [_, to] = decodeSentMessage(tx.message);
   const sentMsgHash = ethers.utils.solidityKeccak256(['bytes'], [tx.message]);

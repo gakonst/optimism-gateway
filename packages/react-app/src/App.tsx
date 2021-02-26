@@ -2,7 +2,7 @@ import React from 'react';
 import { Switch, Route, useHistory, useLocation } from 'react-router-dom';
 import DateTime from 'luxon/src/datetime.js';
 import { Fraction } from '@uniswap/sdk';
-import { ethers, Interface } from 'ethers';
+import { ethers } from 'ethers';
 import { Box, Container, Heading, useToast, Flex } from '@chakra-ui/react';
 import { useQuery } from '@apollo/client';
 import SearchInput from './components/SearchInput';
@@ -32,21 +32,21 @@ const snxL2Contract = new Contract(addresses.l2.SNX.token, abis.SynthetixL2Token
 
 function App() {
   const history = useHistory();
-  const [currentTableView, setCurrentTableView] = React.useState();
+  const [currentTableView, setCurrentTableView] = React.useState<TableViewType | null>();
   const [price, setPrice] = React.useState(0);
   const [fetchingPrice, setFetchingPrice] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [transactions, _setTransactions] = React.useState();
-  const [depositAmountPending, setDepositAmountPending] = React.useState(null);
-  const [withdrawalAmountPending, setWithdrawalAmountPending] = React.useState(null);
-  const [l1TotalAmt, setl1TotalAmt] = React.useState(null);
-  const [l2TotalAmt, setl2TotalAmt] = React.useState(null);
+  const [transactions, _setTransactions] = React.useState<Transaction[] | null>(null);
+  const [depositAmountPending, setDepositAmountPending] = React.useState<number | string | null>(null);
+  const [withdrawalAmountPending, setWithdrawalAmountPending] = React.useState<number | string |  null>(null);
+  const [l1TotalAmt, setl1TotalAmt] = React.useState<number | null>(null);
+  const [l2TotalAmt, setl2TotalAmt] = React.useState<number | null>(null);
   const [l1VsL2WithdrawalDiff, setl1VsL2WithdrawalDiff] = React.useState(null);
   const [txsLoading, setTxsLoading] = React.useState(false);
   const [isFetchingMore, setIsFetchingMore] = React.useState(false);
-  const [tokenSelection, setTokenSelection] = React.useState(null);
-  const [priceIntervalId, setPriceIntervalId] = React.useState(null);
-  const [queryParams, setQueryParams] = React.useState(null);
+  const [tokenSelection, setTokenSelection] = React.useState<TokenSelection | null>(null);
+  const [priceIntervalId, setPriceIntervalId] = React.useState<number | null>(null);
+  const [queryParams, setQueryParams] = React.useState<URLSearchParams | null>(null);
   const [totalTxCount, setTotalTxCount] = React.useState(Number.MAX_SAFE_INTEGER); // used for pagination
   const depositsInitiated = useQuery(getDeposits(), {
     client: clients.l1,
@@ -75,27 +75,27 @@ function App() {
   const toast = useToast();
   const location = useLocation();
 
-  const setTransactions = transactions => {
+  const setTransactions = (transactions: Transaction[]) => {
     _setTransactions(transactions);
     setTxsLoading(false);
     setIsFetchingMore(false);
   };
 
-  const setTxAmountPending = (type, transactions) => {
+  const setTxAmountPending = (type: TransactionViewType, transactions: Transaction[]) => {
     const setter = type === 'withdrawals' ? setWithdrawalAmountPending : setDepositAmountPending;
     const amountPending = transactions.reduce((total, tx) => {
       if ((type === 'withdrawals' && !tx.layer1Hash) || (type === 'deposits' && !tx.layer2Hash)) {
-        total = total.add(tx.amount);
+        total = total.add(tx.amount as bigint);
       }
       return total;
-    }, new Fraction(0));
+    }, new Fraction(0 as BigIntIsh));
     setter(amountPending.divide((1e18).toString()).toFixed(2));
   };
 
   /**
    * Routes to address page if user enters valid address
    */
-  const handleAddressSearch = async address => {
+  const handleAddressSearch = async (address: string) => {
     if (ethers.utils.isAddress(address)) {
       history.push(`/a/${address}`);
     } else {
@@ -131,7 +131,7 @@ function App() {
   };
 
   const getFilteredRelayedTxs = React.useCallback(async (sentMsgTxs, relayedMsgTxs) => {
-    const sentMsgHashes = sentMsgTxs.map(msgTx => {
+    const sentMsgHashes = sentMsgTxs.map((msgTx: Transaction) => {
       return ethers.utils.solidityKeccak256(['bytes'], [msgTx.message]);
     });
     const relayedTxs = (
@@ -149,7 +149,7 @@ function App() {
   const processDeposits = React.useCallback(
     async rawDeposits => {
       // retrieve relevant messages based on this batch of tx timestamps
-      const depositL1TxHashes = rawDeposits.map(tx => tx.hash);
+      const depositL1TxHashes = rawDeposits.map((tx: Transaction) => tx.hash);
       const sentMsgTxs = (
         await sentMessagesFromL1.fetchMore({
           variables: { searchHashes: depositL1TxHashes },
@@ -159,23 +159,23 @@ function App() {
 
       const relayedTxs = await getFilteredRelayedTxs(sentMsgTxs, relayedMessagesOnL2);
 
-      let deposits = rawDeposits.map(rawTx => {
+      let deposits = rawDeposits.map((rawTx: Transaction) => {
         const tx = { ...rawTx };
         tx.from = tx.account;
         tx.layer1Hash = tx.hash;
         tx.timestamp = tx.timestamp * 1000;
-        const sentMessage = sentMsgTxs.find(msgTx => msgTx.hash === tx.hash);
+        const sentMessage = sentMsgTxs.find((msgTx: Transaction) => msgTx.hash === tx.hash);
         const sentMsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
         const [_, to] = decodeSentMessage(sentMessage.message);
         tx.to = to;
-        const relayedTx = relayedTxs.find(msg => msg.msgHash === sentMsgHash);
+        const relayedTx = relayedTxs.find((msg: Transaction) => msg.msgHash === sentMsgHash);
         tx.layer2Hash = relayedTx?.hash;
         tx.relayedTxTimestamp = relayedTx && relayedTx.timestamp * 1000;
         delete tx.hash;
         return tx;
       });
       setTxAmountPending('deposits', deposits);
-      return deposits.sort((a, b) => b.timestamp - a.timestamp);
+      return deposits.sort((a: Transaction, b: Transaction) => b.timestamp - a.timestamp);
     },
     [getFilteredRelayedTxs, relayedMessagesOnL2, sentMessagesFromL1]
   );
@@ -186,7 +186,7 @@ function App() {
   const processWithdrawals = React.useCallback(
     async rawWithdrawals => {
       // retrieve relevant messages based on this batch of tx timestamps
-      const withdrawalL2TxHashes = rawWithdrawals.map(tx => tx.hash);
+      const withdrawalL2TxHashes = rawWithdrawals.map((tx: Transaction) => tx.hash);
       const sentMsgTxs = (
         await sentMessagesFromL2.fetchMore({
           variables: { searchHashes: withdrawalL2TxHashes },
@@ -196,14 +196,14 @@ function App() {
 
       const relayedTxs = await getFilteredRelayedTxs(sentMsgTxs, relayedMessagesOnL1);
 
-      let withdrawals = rawWithdrawals.map(rawTx => {
+      let withdrawals = rawWithdrawals.map((rawTx: Transaction) => {
         const tx = { ...rawTx };
         tx.from = tx.account;
         tx.layer2Hash = tx.hash;
         tx.timestamp = tx.timestamp * 1000;
-        const sentMessage = sentMsgTxs.find(msgTx => msgTx.hash === tx.hash);
+        const sentMessage = sentMsgTxs.find((msgTx: Transaction) => msgTx.hash === tx.hash);
         const sentMsgHash = ethers.utils.solidityKeccak256(['bytes'], [sentMessage.message]);
-        const relayedTx = relayedTxs.find(msg => msg.msgHash === sentMsgHash);
+        const relayedTx = relayedTxs.find((msg: Transaction) => msg.msgHash === sentMsgHash);
         const [_, to] = decodeSentMessage(sentMessage.message);
         tx.to = to;
         tx.layer1Hash = relayedTx?.hash;
@@ -218,7 +218,7 @@ function App() {
       });
 
       setTxAmountPending('withdrawals', withdrawals);
-      return withdrawals.sort((a, b) => b.timestamp - a.timestamp);
+      return withdrawals.sort((a: Transaction, b: Transaction) => b.timestamp - a.timestamp);
     },
     [getFilteredRelayedTxs, relayedMessagesOnL1, sentMessagesFromL2]
   );
@@ -240,7 +240,7 @@ function App() {
         sentMsgTxs,
         layer === 1 ? relayedMessagesOnL2 : relayedMessagesOnL1
       );
-      const txs = sentMsgTxs.map(tx => processSentMessage(tx, layer, relayedTxs));
+      const txs = sentMsgTxs.map((tx: Transaction) => processSentMessage(tx, layer, relayedTxs));
       setTransactions(txs);
     },
     [getFilteredRelayedTxs, relayedMessagesOnL1, relayedMessagesOnL2]

@@ -1,6 +1,6 @@
 import { gql } from 'apollo-boost';
 
-export const getDeposits = indexTo => {
+export const getDeposits = (indexTo?: number) => {
   const queryString = `
   ${indexTo ? `query deposits($indexTo: Int!)` : ''} {
     deposits(first: 100, orderBy: index, orderDirection: desc ${indexTo ? `, where: { index_lt: $indexTo }` : ''}) {
@@ -15,7 +15,7 @@ export const getDeposits = indexTo => {
   return gql(queryString);
 };
 
-export const getWithdrawals = indexTo => {
+export const getWithdrawals = (indexTo?: number) => {
   const queryString = `
   ${indexTo ? `query withdrawals($indexTo: Int!)` : ''} {
     withdrawals(first: 100, orderBy: index, orderDirection: desc ${indexTo ? `, where: { index_lt: $indexTo }` : ''}) {
@@ -30,7 +30,7 @@ export const getWithdrawals = indexTo => {
   return gql(queryString);
 };
 
-export const getSentMessages = ({ searchHashes, indexTo } = {}) => {
+export const getSentMessages = ({ searchHashes, indexTo }: { searchHashes?: string[]; indexTo?: number } = {}) => {
   let query = '';
   const responseContent = ` {
       hash
@@ -66,7 +66,7 @@ export const getSentMessages = ({ searchHashes, indexTo } = {}) => {
   return gql(query);
 };
 
-export const getRelayedMessages = searchHashes => {
+export const getRelayedMessages = (searchHashes?: string[]) => {
   const queryString = `
   ${searchHashes ? `query relayedMessages($searchHashes: [String!])` : ''} {
     relayedMessages(first: 100, orderBy: timestamp, orderDirection: desc ${
