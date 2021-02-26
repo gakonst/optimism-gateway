@@ -32,16 +32,16 @@ const Dot = ({ color }: {color: string}) => (
 );
 
 type Props = {
-  transactions: Transaction[];
-  handleTableViewChange: (view: string)=>{};
+  transactions: Transaction[] | null;
+  handleTableViewChange: (direction: TableViewType)=> Promise<void>;
   fetchTransactions: ({}: {page: string}) => {};
   price: number;
   isRefreshing: boolean;
   refreshTransactions: ()=> {};
   totalTxCount: number;
   txsLoading: boolean;
-  handleTokenSelection: (e: React.FormEvent<HTMLSelectElement>)=> {};
-  currentTableView: string;
+  handleTokenSelection: (e: React.FormEvent<HTMLSelectElement>)=> void;
+  currentTableView: TableViewType;
   queryParams: URLSearchParams;
   isFetchingMore: boolean;
   tokenSelection: TokenSelection;
@@ -56,7 +56,6 @@ function TxHistoryTable({
   refreshTransactions,
   totalTxCount,
   txsLoading,
-  handleTokenSelection,
   currentTableView,
   queryParams,
   isFetchingMore,
@@ -71,7 +70,7 @@ function TxHistoryTable({
   const [lastBtnClicked, setLastBtnClicked] = React.useState("");
   const addressCharLength = 10;
 
-  const shortenAddress = (address: string) =>
+  const shortenAddress = (address: string = "") =>
     address.slice(0, addressCharLength) + '...' + address.slice(address.length - addressCharLength, address.length);
 
   const [dateFormat, setDateFormat] = React.useState('MOMENT');
@@ -90,7 +89,7 @@ function TxHistoryTable({
     });
   };
 
-  const AddressWrapper = ({ children, address }: {children: React.ReactChild, address: string}) => {
+  const AddressWrapper = ({ children, address }: {children: React.ReactChild, address?: string}) => {
     return address ? (
       <CopyToClipboard text={address} onCopy={copiedToClipboard}>
         {children}
@@ -107,13 +106,15 @@ function TxHistoryTable({
     pb: '5px',
   };
 
-  const handleDirectionButtonClick = (direction: string) => {
+  const handleDirectionButtonClick = (direction: TableViewType) => {
     queryParams.set('dir', direction);
     history.push({
       search: queryParams.toString(),
     });
     handleTableViewChange(direction);
   };
+
+  const firstTxIndex = transactions ? transactions[0].index : Number.MAX_SAFE_INTEGER;
 
   return (
     <>
@@ -284,14 +285,14 @@ function TxHistoryTable({
                                 />
                                 {tokenSelection.symbol}
                                 {': '}
-                                {formatNumber((+ethers.utils.formatEther(tx.amount as number)).toFixed(3))}
+                                {formatNumber((+ethers.utils.formatEther(tx.amount as BigIntIsh)).toFixed(3))}
                               </Box>
                             </Td>
                             <Td px={'0.5rem'} {...tokenCellStyles}>
                               <Box d="flex" alignItems="center" h="1.2rem">
                                 Value:{' '}
                                 {price ? (
-                                  formatUSD(+ethers.utils.formatEther(tx.amount as number) * price)
+                                  formatUSD(+ethers.utils.formatEther(tx.amount as BigIntIsh) * price)
                                 ) : (
                                   <Flex alignItems="center">
                                     <Spinner size="xs" ml={2} />
@@ -321,7 +322,7 @@ function TxHistoryTable({
                     fetchTransactions({ page: 'prev' });
                   }}
                   // descending order, so we're at the start of the list if the index === totalTxCount
-                  disabled={transactions[0].index + 1 === totalTxCount}
+                  disabled={firstTxIndex + 1 === totalTxCount}
                 >
                   {isFetchingMore && lastBtnClicked === 'prev' ? <Spinner ml={2} size="sm" /> : 'Prev page'}
                 </Button>
@@ -335,7 +336,7 @@ function TxHistoryTable({
                     fetchTransactions({ page: 'next' });
                   }}
                   // descending order, so we're at the end of the list if the index === 0
-                  disabled={transactions[transactions.length - 1].index === 0}
+                  disabled={transactions && transactions[transactions.length - 1].index === 0}
                 >
                   {isFetchingMore && lastBtnClicked === 'next' ? <Spinner ml={2} size="sm" /> : 'Next page'}
                 </Button>

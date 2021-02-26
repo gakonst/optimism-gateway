@@ -4,12 +4,12 @@ import { formatUSD, formatNumber } from '../helpers';
 import {tokens} from '../constants';
 
 type Props = {
-  depositAmountPending: number;
-  withdrawalAmountPending: number;
+  depositAmountPending: string;
+  withdrawalAmountPending: string;
   price: number;
   l1TotalAmt: string;
   l2TotalAmt: string;
-  l1VsL2lDiff: number;
+  l1VsL2lDiff: string;
   tokenSelection: typeof tokens.SNX
 }
 
@@ -56,7 +56,7 @@ function StatsTable({
               {depositAmountPending || <Spinner size="xs" />}
             </Td>
             <Td textAlign="right" pr={0}>
-              {depositAmountPending && price ? formatUSD(depositAmountPending * price) : <Spinner size="xs" />}
+              {depositAmountPending && price ? formatUSD(+depositAmountPending * price) : <Spinner size="xs" />}
             </Td>
           </Tr>
           <Tr>
@@ -74,7 +74,7 @@ function StatsTable({
               {withdrawalAmountPending || <Spinner size="xs" />}
             </Td>
             <Td textAlign="right" pr={0}>
-              {withdrawalAmountPending && price ? formatUSD(withdrawalAmountPending * price) : <Spinner size="xs" />}
+              {withdrawalAmountPending && price ? formatUSD(+withdrawalAmountPending * price) : <Spinner size="xs" />}
             </Td>
           </Tr>
           <Tr>

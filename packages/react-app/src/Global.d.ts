@@ -10,7 +10,7 @@ declare type Transaction = {
   awaitingRelay?: boolean;
   relayedTxTimestamp?: number;
   amount?: bigint;
-  index?: number;
+  index: number;
   msgHash?: string;
 };
 

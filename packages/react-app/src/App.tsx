@@ -32,16 +32,16 @@ const snxL2Contract = new Contract(addresses.l2.SNX.token, abis.SynthetixL2Token
 
 function App() {
   const history = useHistory();
-  const [currentTableView, setCurrentTableView] = React.useState<TableViewType | null>();
+  const [currentTableView, setCurrentTableView] = React.useState<TableViewType>('incoming');
   const [price, setPrice] = React.useState(0);
   const [fetchingPrice, setFetchingPrice] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [transactions, _setTransactions] = React.useState<Transaction[] | null>(null);
-  const [depositAmountPending, setDepositAmountPending] = React.useState<number | string | null>(null);
-  const [withdrawalAmountPending, setWithdrawalAmountPending] = React.useState<number | string |  null>(null);
-  const [l1TotalAmt, setl1TotalAmt] = React.useState<number | null>(null);
-  const [l2TotalAmt, setl2TotalAmt] = React.useState<number | null>(null);
-  const [l1VsL2WithdrawalDiff, setl1VsL2WithdrawalDiff] = React.useState(null);
+  const [depositAmountPending, setDepositAmountPending] = React.useState('');
+  const [withdrawalAmountPending, setWithdrawalAmountPending] = React.useState('');
+  const [l1TotalAmt, setl1TotalAmt] = React.useState("");
+  const [l2TotalAmt, setl2TotalAmt] = React.useState("");
+  const [l1VsL2WithdrawalDiff, setl1VsL2WithdrawalDiff] = React.useState<string>("");
   const [txsLoading, setTxsLoading] = React.useState(false);
   const [isFetchingMore, setIsFetchingMore] = React.useState(false);
   const [tokenSelection, setTokenSelection] = React.useState<TokenSelection | null>(null);
@@ -224,7 +224,7 @@ function App() {
   );
 
   const processPageOfxDomainTxs = React.useCallback(
-    async (layer, sentMessages, totalMessageCount, indexTo) => {
+    async (layer, sentMessages, totalMessageCount, indexTo?: number) => {
       setIsFetchingMore(true);
       setTotalTxCount(totalMessageCount);
 
@@ -255,11 +255,11 @@ function App() {
         setTxsLoading(true);
       }
 
-      const firstTx = transactions && transactions[0];
-      const lastTx = transactions && transactions[transactions.length - 1];
+      const firstTxIndex = (transactions && transactions[0].index) || Number.MAX_SAFE_INTEGER;
+      const lastTxIndex = transactions && transactions[transactions.length - 1].index || 0;
 
       // If page isn't specified, start from the start of the list
-      const indexTo = !page || !transactions ? 0 : page === 'prev' ? firstTx.index + FETCH_LIMIT + 1 : lastTx.index;
+      const indexTo = !page || !transactions ? 0 : page === 'prev' ? firstTxIndex + FETCH_LIMIT + 1 : lastTxIndex;
       if (currentTableView === panels.INCOMING) {
         // fetch deposits
         if (token) {
@@ -341,9 +341,10 @@ function App() {
     ]
   );
 
-  const handleTokenSelection = e => {
+  const handleTokenSelection = (e: React.FormEvent<HTMLSelectElement>) => {
+    const target = e.target as HTMLSelectElement;
     if (!queryParams) return;
-    const tokenSymbol = e.target.value;
+    const tokenSymbol = target.value;
     if (tokenSymbol) {
       queryParams.set('token', tokenSymbol);
     } else {
@@ -363,7 +364,7 @@ function App() {
     coingeckoId => {
       setFetchingPrice(true);
       if (coingeckoId) {
-        const newIntervalId = setInterval(() => {
+        const newIntervalId = window.setInterval(() => {
           fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`)
             .then(res => res.json())
             .then(data => {
@@ -378,7 +379,7 @@ function App() {
         }
         setPriceIntervalId(newIntervalId);
       } else {
-        window.clearInterval(priceIntervalId);
+        window.clearInterval(priceIntervalId as number);
       }
     },
     [priceIntervalId]
@@ -387,7 +388,7 @@ function App() {
   /**
    * Handles switching page view
    */
-  const handleTableViewChange = async direction => {
+  const handleTableViewChange = async (direction: TableViewType) => {
     setCurrentTableView(direction);
     if (direction === panels.INCOMING) {
       setTxsLoading(true);
@@ -422,7 +423,7 @@ function App() {
     if (!queryParams && location) {
       const params = new URLSearchParams(location.search.slice(1));
       const token = params.get('token');
-      const dir = params.get('dir');
+      const dir = params.get('dir')  as TableViewType | "";
       setCurrentTableView(dir || 'incoming');
 
       if (token) {
@@ -519,7 +520,7 @@ function App() {
   React.useEffect(() => {
     (async () => {
       if (!transactions || !price || !withdrawalAmountPending) return;
-      const diff = +l1TotalAmt - +l2TotalAmt - withdrawalAmountPending;
+      const diff = +l1TotalAmt - +l2TotalAmt - +withdrawalAmountPending;
       setl1VsL2WithdrawalDiff(diff.toFixed(2));
     })();
   }, [l1TotalAmt, l2TotalAmt, price, transactions, withdrawalAmountPending]);
@@ -536,7 +537,7 @@ function App() {
           <Box pos="absolute" left={4}>
             <TokenSelector
               handleTokenSelection={handleTokenSelection}
-              tokenSymbol={tokenSelection && tokenSelection.symbol}
+              tokenSymbol={tokenSelection?.symbol || ''}
             />
           </Box>
           <Heading as="h1" size="xl" textAlign="center" mt={4} mb={16} fontWeight="300 !important">
@@ -578,7 +579,7 @@ function App() {
           </Route>
           <Route exact path="/">
             <TxHistoryTable
-              transactions={transactions}
+            transactions={transactions}
               txsLoading={txsLoading}
               handleTableViewChange={handleTableViewChange}
               fetchTransactions={fetchTransactions}
@@ -589,8 +590,8 @@ function App() {
               isRefreshing={isRefreshing}
               totalTxCount={totalTxCount} // TODO: make all subgraph queries return a totalCount
               handleTokenSelection={handleTokenSelection}
-              queryParams={queryParams}
-              tokenSelection={tokenSelection}
+              queryParams={queryParams as URLSearchParams}
+              tokenSelection={tokenSelection as TokenSelection}
             />
           </Route>
         </Switch>

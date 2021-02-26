@@ -3,7 +3,7 @@ export const panels = {
   OUTGOING: 'outgoing',
 };
 
-export const tokens = {
+export const tokens: { [key: string]: TokenSelection } = {
   SNX: {
     name: 'Synthetix',
     symbol: 'SNX',
