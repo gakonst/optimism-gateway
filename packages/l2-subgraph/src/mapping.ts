@@ -71,5 +71,6 @@ export function handleWithdrawal(event: WithdrawalInitiatedEvent): void {
   withdrawal.hash = event.transaction.hash.toHex();
   withdrawal.account = event.params.account;
   withdrawal.amount = event.params.amount;
+  withdrawal.bridgeAddress = event.address;
   withdrawal.save();
 }

@@ -287,6 +287,15 @@ export class Withdrawal extends Entity {
   set amount(value: BigInt) {
     this.set("amount", Value.fromBigInt(value));
   }
+
+  get bridgeAddress(): Bytes {
+    let value = this.get("bridgeAddress");
+    return value.toBytes();
+  }
+
+  set bridgeAddress(value: Bytes) {
+    this.set("bridgeAddress", Value.fromBytes(value));
+  }
 }
 
 export class TxStats extends Entity {

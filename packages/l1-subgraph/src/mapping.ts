@@ -67,6 +67,7 @@ export function handleDeposit(event: DepositEvent): void {
   deposit.hash = event.transaction.hash.toHex();
   deposit.account = event.params.account;
   deposit.amount = event.params.amount;
+  deposit.bridgeAddress = event.address;
   deposit.save();
 
   stats.totalCount = stats.totalCount + 1;

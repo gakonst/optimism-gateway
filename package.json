@@ -16,8 +16,7 @@
     "app:build": "yarn workspace @project/react-app build",
     "app:eject": "yarn workspace @project/react-app eject",
     "app:ipfs": "yarn workspace @project/react-app ipfs",
-    "app:start:kovan": "REACT_APP_ETH_NETWORK=kovan yarn workspace @project/react-app start",
-    "app:start": "REACT_APP_ETH_NETWORK=mainnet yarn workspace @project/react-app start",
+    "app:start": "yarn workspace @project/react-app start",
     "app:test": "yarn workspace @project/react-app test",
     "app:deploy": "surge packages/react-app/build optimism-snx-tracker.surge.sh"
   },

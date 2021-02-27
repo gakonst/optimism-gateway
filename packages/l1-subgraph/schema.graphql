@@ -30,6 +30,7 @@ type Deposit @entity {
   timestamp: Int!
   account: Bytes!
   amount: BigInt!
+  bridgeAddress: Bytes!
 }
 
 type TxStats @entity {
