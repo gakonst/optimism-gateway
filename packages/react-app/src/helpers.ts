@@ -1,6 +1,8 @@
 import { ethers } from 'ethers';
 import { abis } from '@project/contracts';
 import DateTime from 'luxon/src/datetime.js';
+import { getRelayedMessages } from './graphql/subgraph';
+import { QueryResult } from '@apollo/client';
 
 const xDomainInterface = new ethers.utils.Interface(abis.XDomainMessenger);
 
@@ -62,4 +64,20 @@ export const processSentMessage = (
   }
   tx.relayedTxTimestamp = relayedTx && relayedTx.timestamp * 1000;
   return tx;
+};
+
+export const getFilteredRelayedTxs = async (
+  sentMsgTxs: Transaction[],
+  relayedMsgTxs: QueryResult<any, Record<string, any>>
+) => {
+  const sentMsgHashes = sentMsgTxs.map((msgTx: Transaction) => {
+    return ethers.utils.solidityKeccak256(['bytes'], [msgTx.message]);
+  });
+  const relayedTxs = (
+    await relayedMsgTxs.fetchMore({
+      variables: { searchHashes: sentMsgHashes },
+      query: getRelayedMessages(sentMsgHashes),
+    })
+  ).data.relayedMessages;
+  return relayedTxs;
 };

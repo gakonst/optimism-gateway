@@ -25,4 +25,6 @@ declare type TransactionViewType = 'deposits' | 'withdrawals';
 
 declare type TableViewType = 'incoming' | 'outgoing';
 
+declare type Layer = 1 | 2;
+
 declare type BigIntIsh = JSBI | bigint | string;
