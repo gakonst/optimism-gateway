@@ -172,7 +172,7 @@ function Balances({
       <Heading size="sm" mt={0} mb={4} px={2}>
         {connectedLayer === 2 ? network.toUpperCase() : connectedLayer === 1 ? 'OPTIMISM' : ''}
       </Heading>
-      <Box px={8} bg={sectionBg} borderRadius="20px" pt="1.5rem" pb="1.5rem">
+      <Box px={8} borderWidth="1px" borderRadius="20px" pt="1.5rem" pb="1.5rem">
         <Box fontSize="1.5rem" whiteSpace="pre" textOverflow="ellipsis" overflow="hidden">
           {balancesLoading ? <Spinner size="xs" /> : connectedLayer === 2 ? l1Balance : l2Balance} ETH
         </Box>

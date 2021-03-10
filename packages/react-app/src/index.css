@@ -55,3 +55,17 @@ table {
     opacity: 0;
   }
 }
+
+.burgerBtn {
+  z-index: 2000;
+  position: relative;
+  outline: none;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 !important;
+}
+
+.burgerBtn div {
+  width: 30px;
+  height: 30px;
+}

@@ -1,56 +1,17 @@
 import React from 'react';
-import { useLocation, Switch, Route, Link as RouterLink } from 'react-router-dom';
-import { Link, Box, Button, Container, useColorMode, Heading, HStack } from '@chakra-ui/react';
+import { Switch, Route } from 'react-router-dom';
+import { Container, useDisclosure } from '@chakra-ui/react';
 import TxHistoryTable from './components/TxHistory';
 import ETHGateway from './components/ETHGateway';
+import HeaderNav from './components/HeaderNav';
 
 function App() {
-  const { colorMode, toggleColorMode } = useColorMode();
-  const location = useLocation();
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   return (
     <>
       <Container maxW={'1400px'} p="4">
-        <Box d="flex" justifyContent="space-between" pb={16}>
-          <Link to="/">
-            <Heading
-              className="rainbowText"
-              userSelect="none"
-              as="h1"
-              size="lg"
-              mt={0}
-              fontWeight={'500'}
-              fontStyle="italic"
-              color="brand.primary"
-            >
-              Optimism Gateway
-            </Heading>
-          </Link>
-          <HStack spacing={8} as="nav">
-            {[
-              { path: '/', text: 'Gateway' },
-              { path: '/txs', text: 'History' },
-            ].map(navItem => (
-              <Link
-                as={RouterLink}
-                fontSize="1.4rem"
-                color="default !important"
-                to={navItem.path}
-                opacity={location.pathname === navItem.path ? 1 : 0.7}
-                _hover={{ opacity: 1 }}
-                boxShadow="none !important"
-                textDecoration="none !important"
-              >
-                {navItem.text}
-              </Link>
-            ))}
-            <Box d="flex" alignItems="center">
-              <Button borderRadius="100%" ml={4} p={0} onClick={toggleColorMode}>
-                {colorMode === 'light' ? '🌜' : '🌞'}
-              </Button>
-            </Box>
-          </HStack>
-        </Box>
+        <HeaderNav isOpen={isOpen} onOpen={onOpen} onClose={onClose} />
         <Switch>
           <Route exact path="/">
             <ETHGateway />

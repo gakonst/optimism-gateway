@@ -46,7 +46,7 @@ const theme = extendTheme({
   },
   components: {
     Link: {
-      baseStyle: ({ colorMode }) => ({
+      baseStyle: ({ colorMode }: { colorMode: string }) => ({
         color: colorMode === 'dark' ? colors.brandSecondaryLight : colors.brandSecondary,
       }),
     },

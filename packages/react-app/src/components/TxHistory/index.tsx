@@ -554,10 +554,8 @@ function TxHistoryTable() {
 
   return (
     <>
-      <Box as="header" d="flex" justifyContent="center">
-        <Box pos="absolute" left={4}>
-          <TokenSelector handleTokenSelection={handleTokenSelection} tokenSymbol={tokenSelection?.symbol || ''} />
-        </Box>
+      <Box mb={4} maxW="200px">
+        <TokenSelector handleTokenSelection={handleTokenSelection} tokenSymbol={tokenSelection?.symbol || ''} />
       </Box>
       <Flex mb={16} w="600px" mx="auto">
         {tokenSelection && (
@@ -572,7 +570,7 @@ function TxHistoryTable() {
           />
         )}
       </Flex>
-      <Box variant="soft-rounded" mt={8} mb={16}>
+      <Box variant="soft-rounded" mt={8} mb={16} overflow="hidden">
         <HStack alignItems="flex-end" justifyContent="center" pb={8} spacing={10}>
           <Button
             onClick={() => handleDirectionButtonClick('incoming')}
@@ -698,7 +696,12 @@ function TxHistoryTable() {
                           </Td>
                           <Td px={'0.5rem'} textAlign="center">
                             {tx.layer1Hash ? (
-                              <ExternalLink href={`https://etherscan.io/tx/${tx.layer1Hash}`} isExternal>
+                              <ExternalLink
+                                color="default !important"
+                                boxShadow="none !important"
+                                href={`https://etherscan.io/tx/${tx.layer1Hash}`}
+                                isExternal
+                              >
                                 <ExternalLinkIcon />
                               </ExternalLink>
                             ) : (
@@ -708,6 +711,8 @@ function TxHistoryTable() {
                           <Td px={'0.5rem'} textAlign="right">
                             {tx.layer2Hash ? (
                               <ExternalLink
+                                color="default !important"
+                                boxShadow="none !important"
                                 href={`https://mainnet-l2-explorer.surge.sh/tx/${tx.layer2Hash}`}
                                 isExternal
                               >

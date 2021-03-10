@@ -467,7 +467,7 @@ function Gateway() {
           currentModal={currentModal}
           connectToProvider={connectToProvider}
         />
-        <Box maxW="500px" mx="auto">
+        <Box maxW="500px" mx="auto" mt="5vh">
           {txPending && (
             <Link
               as={RouterLink}
