@@ -1,1 +1,0 @@
-Subgraph for L2 SNX withdrawals

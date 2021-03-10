@@ -13,3 +13,59 @@ code {
 table {
   table-layout: fixed;
 }
+
+.rainbowText {
+  background: linear-gradient(to right, rgb(240, 26, 55), #169fc9, #f01a37);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  transition: all 0.3s ease-in-out !important;
+  color: rgba(0, 0, 0, 0) !important;
+}
+
+.rainbowText:hover,
+.rainbowText:focus span {
+  animation: rainbow 1.5s ease-in-out infinite;
+}
+
+@keyframes rainbow {
+  25% {
+    background-position: top right;
+  }
+  50% {
+    background-position: bottom right;
+  }
+  75% {
+    background-position: bottom left;
+  }
+  100% {
+    background-position: top left;
+  }
+}
+
+@keyframes pulsate {
+  0% {
+    -webkit-transform: scale(0.1, 0.1);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    -webkit-transform: scale(1.2, 1.2);
+    opacity: 0;
+  }
+}
+
+.burgerBtn {
+  z-index: 2000;
+  position: relative;
+  outline: none;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 !important;
+}
+
+.burgerBtn div {
+  width: 30px;
+  height: 30px;
+}

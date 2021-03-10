@@ -17,3 +17,5 @@ The steps should go as follows:
 3. Build & deploy l1 and l2 subgraphs by running `yarn codegen`, `yarn build`, and `yarn deploy` in their respective directories (it will take a few minutes for each to resync)
 4. Add the token to the `tokens` object in `packages/react-app/src/constants.ts`, conforming to the `TokenSelection` type.
 5. Submit a PR
+
+#test
