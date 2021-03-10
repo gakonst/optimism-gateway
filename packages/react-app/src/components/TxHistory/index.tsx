@@ -576,17 +576,17 @@ function TxHistoryTable() {
         <HStack alignItems="flex-end" justifyContent="center" pb={8} spacing={10}>
           <Button
             onClick={() => handleDirectionButtonClick('incoming')}
-            size="lg"
+            size="md"
             variant={currentTableView === 'incoming' ? 'outline' : 'ghost'}
           >
-            INCOMING
+            Incoming
           </Button>
           <Button
             onClick={() => handleDirectionButtonClick('outgoing')}
-            size="lg"
+            size="md"
             variant={currentTableView === 'outgoing' ? 'outline' : 'ghost'}
           >
-            OUTGOING
+            Outgoing
           </Button>
         </HStack>
         <>

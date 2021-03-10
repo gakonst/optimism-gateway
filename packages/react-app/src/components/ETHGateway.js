@@ -1,22 +1,15 @@
 import React from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { Contract } from '@ethersproject/contracts';
 import {
   Box,
-  Button,
   Container,
-  useColorMode,
-  Heading,
   useDisclosure,
   Text,
   useToast,
   Link,
   useColorModeValue,
-  Tab,
-  Tabs,
-  TabPanels,
-  TabPanel,
-  TabList,
   useMediaQuery,
 } from '@chakra-ui/react';
 import Modal, { modalTypes } from './Modal';
@@ -32,7 +25,6 @@ import { txStatuses, txTypes, chainIdLayerMap, chainIds } from '../constants';
 const NUM_BLOCKS_TO_FETCH = 1000000;
 
 function Gateway() {
-  const { colorMode, toggleColorMode } = useColorMode();
   const { isOpen: isModalOpen, onOpen: openModal, onClose: closeModal } = useDisclosure();
   const [isInitialized, setIsInitialized] = React.useState(false);
   const [currentModal, setCurrentModal] = React.useState(modalTypes.CONNECT);
@@ -56,106 +48,105 @@ function Gateway() {
   const [watcher, setWatcher] = React.useState(null);
   const toast = useToast();
 
-  const initTxHistory = React.useCallback(async () => {
-    console.log('initTxHistory');
+  // const initTxHistory = React.useCallback(async () => {
+  //   console.log('initTxHistory');
 
-    const addresses = getAddresses(connectedChainId);
+  //   const addresses = getAddresses(connectedChainId);
 
-    try {
-      const deposits = await getTxHistory({
-        type: txTypes.DEPOSIT,
-        provider: rpcL1Provider,
-        bridgeAddress: addresses.l1.ethBridge,
-        eventFilter: contracts.l1.ethBridge.filters.DepositInitiated,
-        eventSignature: 'Deposit(address,address,uint256)',
-      });
+  //   try {
+  //     const deposits = await getTxHistory({
+  //       type: txTypes.DEPOSIT,
+  //       provider: rpcL1Provider,
+  //       bridgeAddress: addresses.l1.ethBridge,
+  //       eventFilter: contracts.l1.ethBridge.filters.DepositInitiated,
+  //       eventSignature: 'Deposit(address,address,uint256)',
+  //     });
 
-      const withdrawals = await getTxHistory({
-        type: txTypes.WITHDRAWAL,
-        provider: rpcL2Provider,
-        bridgeAddress: addresses.l2.ethBridge,
-        eventFilter: contracts.l2.ethBridge.filters.WithdrawalInitiated,
-        eventSignature: 'WithdrawalInitiated(address,address,uint256)',
-      });
+  //     const withdrawals = await getTxHistory({
+  //       type: txTypes.WITHDRAWAL,
+  //       provider: rpcL2Provider,
+  //       bridgeAddress: addresses.l2.ethBridge,
+  //       eventFilter: contracts.l2.ethBridge.filters.WithdrawalInitiated,
+  //       eventSignature: 'WithdrawalInitiated(address,address,uint256)',
+  //     });
 
-      setTransactions([...deposits, ...withdrawals].sort((a, b) => b.timestamp - a.timestamp));
-      setTxsLoading(false);
-    } catch (err) {
-      console.error(err);
-    }
+  //     setTransactions([...deposits, ...withdrawals].sort((a, b) => b.timestamp - a.timestamp));
+  //     setTxsLoading(false);
+  //   } catch (err) {
+  //     console.error(err);
+  //   }
 
-    async function getTxHistory({ type, bridgeAddress, provider, eventFilter, eventSignature, setTxHistory }) {
-      try {
-        const blockNumber = await provider.getBlockNumber();
-        const startBlock = Math.max(blockNumber - NUM_BLOCKS_TO_FETCH, 0);
-        const filters = eventFilter(userAddress);
-        const logs = await provider.getLogs({ ...filters, fromBlock: startBlock });
-        const events = await processLogs({ token: 'ETH', logs, provider, type });
-        // watch for future events
-        provider.on({ address: bridgeAddress, topics: [ethers.utils.id(eventSignature)] }, async logs => {
-          const newTx = await processLogs({ token: 'ETH', logs: [logs], provider, type });
-          setTransactions(history => [...newTx, ...history].sort((a, b) => b.timestamp - a.timestamp));
-          setTxPending(false);
-        });
+  //   async function getTxHistory({ type, bridgeAddress, provider, eventFilter, eventSignature, setTxHistory }) {
+  //     try {
+  //       const blockNumber = await provider.getBlockNumber();
+  //       const startBlock = Math.max(blockNumber - NUM_BLOCKS_TO_FETCH, 0);
+  //       const filters = eventFilter(userAddress);
+  //       const logs = await provider.getLogs({ ...filters, fromBlock: startBlock });
+  //       const events = await processLogs({ token: 'ETH', logs, provider, type });
+  //       // watch for future events
+  //       provider.on({ address: bridgeAddress, topics: [ethers.utils.id(eventSignature)] }, async logs => {
+  //         const newTx = await processLogs({ token: 'ETH', logs: [logs], provider, type });
+  //         setTransactions(history => [...newTx, ...history].sort((a, b) => b.timestamp - a.timestamp));
+  //         setTxPending(false);
+  //       });
 
-        return events;
-      } catch (err) {
-        console.error(err);
-      }
-    }
+  //       return events;
+  //     } catch (err) {
+  //       console.error(err);
+  //     }
+  //   }
 
-    async function processLogs({ token, logs, provider, type }) {
-      const contractInterface =
-        type === txTypes.DEPOSIT ? contracts.l1.ethBridge.interface : contracts.l2.ethBridge.interface;
-      try {
-        console.log('logs', logs);
-        const events = await Promise.all(
-          logs.map(async l => {
-            const block = await provider.getBlock(l.blockNumber);
-            const { args } = contractInterface.parseLog(l);
-            const timestamp = Number(block.timestamp * 1000);
-            return {
-              timestamp,
-              amount: args._amount / 1e18,
-              token: 'ETH',
-              transactionHash: l.transactionHash,
-            };
-          })
-        );
-        return await Promise.all(
-          events.map(async event => {
-            try {
-              const msgHashes =
-                type === txTypes.DEPOSIT
-                  ? await watcher.getMessageHashesFromL1Tx(event.transactionHash)
-                  : await watcher.getMessageHashesFromL2Tx(event.transactionHash);
-              const receipt =
-                type === txTypes.DEPOSIT
-                  ? await watcher.getL2TransactionReceipt(msgHashes[0], false)
-                  : await watcher.getL1TransactionReceipt(msgHashes[0], false);
-              const eventObj = {
-                ...event,
-                type,
-                status: receipt?.transactionHash ? txStatuses.COMPLETE : txStatuses.PENDING,
-              };
-              if (type === txTypes.DEPOSIT) {
-                eventObj.l1TransactionHash = event.transactionHash;
-                eventObj.l2TransactionHash = receipt?.transactionHash;
-              } else {
-                eventObj.l2TransactionHash = event.transactionHash;
-                eventObj.l1TransactionHash = receipt?.transactionHash;
-              }
-              return eventObj;
-            } catch (err) {
-              console.error(err);
-            }
-          })
-        );
-      } catch (err) {
-        console.error(err);
-      }
-    }
-  }, [connectedChainId, contracts, rpcL1Provider, rpcL2Provider, userAddress, watcher]);
+  //   async function processLogs({ token, logs, provider, type }) {
+  //     const contractInterface =
+  //       type === txTypes.DEPOSIT ? contracts.l1.ethBridge.interface : contracts.l2.ethBridge.interface;
+  //     try {
+  //       const events = await Promise.all(
+  //         logs.map(async l => {
+  //           const block = await provider.getBlock(l.blockNumber);
+  //           const { args } = contractInterface.parseLog(l);
+  //           const timestamp = Number(block.timestamp * 1000);
+  //           return {
+  //             timestamp,
+  //             amount: args._amount / 1e18,
+  //             token: 'ETH',
+  //             transactionHash: l.transactionHash,
+  //           };
+  //         })
+  //       );
+  //       return await Promise.all(
+  //         events.map(async event => {
+  //           try {
+  //             const msgHashes =
+  //               type === txTypes.DEPOSIT
+  //                 ? await watcher.getMessageHashesFromL1Tx(event.transactionHash)
+  //                 : await watcher.getMessageHashesFromL2Tx(event.transactionHash);
+  //             const receipt =
+  //               type === txTypes.DEPOSIT
+  //                 ? await watcher.getL2TransactionReceipt(msgHashes[0], false)
+  //                 : await watcher.getL1TransactionReceipt(msgHashes[0], false);
+  //             const eventObj = {
+  //               ...event,
+  //               type,
+  //               status: receipt?.transactionHash ? txStatuses.COMPLETE : txStatuses.PENDING,
+  //             };
+  //             if (type === txTypes.DEPOSIT) {
+  //               eventObj.l1TransactionHash = event.transactionHash;
+  //               eventObj.l2TransactionHash = receipt?.transactionHash;
+  //             } else {
+  //               eventObj.l2TransactionHash = event.transactionHash;
+  //               eventObj.l1TransactionHash = receipt?.transactionHash;
+  //             }
+  //             return eventObj;
+  //           } catch (err) {
+  //             console.error(err);
+  //           }
+  //         })
+  //       );
+  //     } catch (err) {
+  //       console.error(err);
+  //     }
+  //   }
+  // }, [connectedChainId, contracts, rpcL1Provider, rpcL2Provider, userAddress, watcher]);
 
   function switchLayers() {
     if (chainIdLayerMap[connectedChainId] === 1) {
@@ -420,12 +411,12 @@ function Gateway() {
     walletProvider,
   ]);
 
-  React.useEffect(() => {
-    if (userAddress && connectedChainId && rpcL1Provider && rpcL2Provider) {
-      setTxsLoading(true);
-      initTxHistory();
-    }
-  }, [initTxHistory, userAddress, connectedChainId, rpcL1Provider, rpcL2Provider]);
+  // React.useEffect(() => {
+  //   if (userAddress && connectedChainId && rpcL1Provider && rpcL2Provider) {
+  //     setTxsLoading(true);
+  //     initTxHistory();
+  //   }
+  // }, [initTxHistory, userAddress, connectedChainId, rpcL1Provider, rpcL2Provider]);
 
   React.useEffect(() => {
     (async () => {
@@ -476,81 +467,45 @@ function Gateway() {
           currentModal={currentModal}
           connectToProvider={connectToProvider}
         />
-        <Box d="flex" justifyContent="space-between" pb={16}>
-          <Heading
-            className="rainbowText"
-            userSelect="none"
-            as="h1"
-            size="lg"
-            mt={0}
-            fontWeight={'500'}
-            fontStyle="italic"
-            color="brand.primary"
+        <Box maxW="500px" mx="auto">
+          {txPending && (
+            <Link
+              as={RouterLink}
+              to="/txs"
+              d="flex"
+              alignItems="center"
+              justifyContent="flex-end"
+              mb={2}
+              color="default !important"
+              textDecoration="none !important"
+            >
+              Transaction pending
+              <Pulse ml={2} />
+            </Link>
+          )}
+          <Box
+            borderWidth="1px"
+            borderRadius="20px"
+            bg={containerBg}
+            padding={`1rem ${isMobile ? '1rem' : '1.5rem'} 3rem`}
           >
-            Optimism Gateway
-          </Heading>
-          <Box d="flex" alignItems="center">
-            <Button borderRadius="100%" ml={4} p={0} onClick={toggleColorMode}>
-              {colorMode === 'light' ? '🌜' : '🌞'}
-            </Button>
+            <Balances
+              contracts={contracts}
+              userAddress={userAddress}
+              txPending={txPending}
+              handleDeposit={handleDeposit}
+              handleWithdraw={handleWithdraw}
+              l1Balance={l1Balance}
+              l2Balance={l2Balance}
+              inputValue={inputValue}
+              setInputValue={setInputValue}
+              showConnectModal={showConnectModal}
+              balancesLoading={balancesLoading}
+              connectedChainId={connectedChainId}
+              switchLayers={switchLayers}
+            />
           </Box>
-        </Box>
-        <Tabs maxW="500px" margin="0 auto">
-          <TabList borderWidth={0} position="relative">
-            {walletProvider && (
-              <>
-                <Tab borderWidth={0} boxShadow="none !important" opacity={0.6} _selected={{ opacity: 1 }}>
-                  Balances
-                </Tab>
-
-                <Tab
-                  borderWidth={0}
-                  boxShadow="none !important"
-                  alignItems="center"
-                  opacity={0.6}
-                  _selected={{ opacity: 1 }}
-                >
-                  History
-                </Tab>
-              </>
-            )}
-            {txPending && (
-              <Box d="flex" alignItems="center" position="absolute" top="10px" right="10px">
-                Transfer pending
-                <Pulse ml={2} />
-              </Box>
-            )}
-          </TabList>
-          <TabPanels>
-            <TabPanel
-              borderWidth="1px"
-              borderRadius="20px"
-              bg={containerBg}
-              padding={`1rem ${isMobile ? '1rem' : '1.5rem'} 3rem`}
-            >
-              <Balances
-                contracts={contracts}
-                userAddress={userAddress}
-                txPending={txPending}
-                handleDeposit={handleDeposit}
-                handleWithdraw={handleWithdraw}
-                l1Balance={l1Balance}
-                l2Balance={l2Balance}
-                inputValue={inputValue}
-                setInputValue={setInputValue}
-                showConnectModal={showConnectModal}
-                balancesLoading={balancesLoading}
-                connectedChainId={connectedChainId}
-                switchLayers={switchLayers}
-              />
-            </TabPanel>
-            <TabPanel
-              borderWidth="1px"
-              borderRadius="20px"
-              bg={containerBg}
-              padding={`1rem ${isMobile ? '1rem' : '1.5rem'} 3rem`}
-            >
-              {/* <TxHistoryTable
+          {/* <TxHistoryTable
                 connectedChainId={connectedChainId}
                 contracts={contracts}
                 userAddress={userAddress}
@@ -558,9 +513,7 @@ function Gateway() {
                 txsLoading={txsLoading}
                 transactions={transactions}
               /> */}
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
+        </Box>
       </Container>
     </>
   );
