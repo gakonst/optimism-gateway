@@ -5,6 +5,7 @@ import { ChakraProvider, ColorModeScript, extendTheme } from '@chakra-ui/react';
 import { ApolloProvider } from '@apollo/client';
 import clients from './graphql/clients';
 import './index.css';
+import { colors } from './constants';
 import App from './App';
 
 const theme = extendTheme({
@@ -23,25 +24,38 @@ const theme = extendTheme({
         },
       },
       h1: {
-        fontSize: ['2.5rem !important', null, '3rem !important'],
-        fontWeight: '500 !important',
         marginTop: '2rem',
       },
       h2: {
+        fontWeight: '400 !important',
         margin: '3.5rem auto 3rem',
       },
       h3: {
         marginTop: '2rem',
-        fontWeight: '500 !important',
+        fontWeight: '200 !important',
       },
       h4: {
         marginTop: '2rem',
-        fontWeight: '500 !important',
+        fontWeight: '200 !important',
       },
       h5: {
         marginTop: '2rem',
-        fontWeight: '500 !important',
+        fontWeight: '200 !important',
       },
+    },
+  },
+  components: {
+    Link: {
+      baseStyle: ({ colorMode }) => ({
+        color: colorMode === 'dark' ? colors.brandSecondaryLight : colors.brandSecondary,
+      }),
+    },
+  },
+  colors: {
+    brand: {
+      primary: colors.brandPrimary,
+      secondary: colors.brandSecondary,
+      secondaryLight: colors.brandSecondaryLight,
     },
   },
   fonts: {

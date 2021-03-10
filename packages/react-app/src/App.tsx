@@ -2,6 +2,7 @@ import React from 'react';
 import { Switch, Route } from 'react-router-dom';
 import { Container } from '@chakra-ui/react';
 import TxHistoryTable from './components/TxHistory';
+import ETHGateway from './components/ETHGateway';
 
 function App() {
   return (
@@ -10,7 +11,7 @@ function App() {
         {/* <SearchInput handleAddressSearch={handleAddressSearch} /> */}
         <Switch>
           <Route exact path="/">
-            home
+            <ETHGateway />
           </Route>
           <Route path="/a/:address">
             {/* <AddressView

@@ -29,7 +29,7 @@ import Interval from 'luxon/src/interval.js';
 import TokenSelector from '../TokenSelector';
 import StatsTable from '../StatsTable';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
-import { abis, addresses } from '@project/contracts';
+import { abis, getAddresses } from '@project/contracts';
 import { formatNumber, formatUSD, getFilteredRelayedTxs, processSentMessage, decodeSentMessage } from '../../helpers';
 import { panels, FETCH_LIMIT, tokens } from '../../constants';
 import { useHistory, useRouteMatch, Link, useLocation } from 'react-router-dom';
@@ -43,14 +43,18 @@ import {
   GET_MSG_STATS,
 } from '../../graphql/subgraph';
 
+const addresses = getAddresses(1);
+
 const Dot = ({ color }: { color: string }) => (
   <Box d="inline-block" h="12px" w="12px" bgColor={`${color} !important`} mr="10px" borderRadius="100%" />
 );
 
 const l1Provider = new JsonRpcProvider(`https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`);
 const l2Provider = new JsonRpcProvider(`https://mainnet.optimism.io`);
-const snxL1Contract = new Contract(addresses.l1.SNX.token, abis.SynthetixL1Token, l1Provider);
-const snxL2Contract = new Contract(addresses.l2.SNX.token, abis.SynthetixL2Token, l2Provider);
+
+// TODO: try to serve this info from the subgraphs to remove the dependencies here
+const snxL1Contract = new Contract(addresses.l1.snxToken, abis.SynthetixL1Token, l1Provider);
+const snxL2Contract = new Contract(addresses.l2.snxToken, abis.SynthetixL2Token, l2Provider);
 
 function TxHistoryTable() {
   const history = useHistory();
@@ -495,7 +499,7 @@ function TxHistoryTable() {
 
   React.useEffect(() => {
     (async () => {
-      const l1TotalAmt = ethers.utils.formatEther(await snxL1Contract.balanceOf(addresses.l1.SNX.bridge));
+      const l1TotalAmt = ethers.utils.formatEther(await snxL1Contract.balanceOf(addresses.l1.snxBridge));
       const l2TotalAmt = ethers.utils.formatEther(await snxL2Contract.totalSupply());
       setl1TotalAmt(l1TotalAmt);
       setl2TotalAmt(l2TotalAmt);
