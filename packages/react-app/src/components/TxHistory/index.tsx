@@ -700,7 +700,7 @@ function TxHistoryTable({ showStats }: { showStats?: boolean }) {
                                 color="default !important"
                                 boxShadow="none !important"
                                 href={`https://etherscan.io/tx/${tx.layer1Hash}`}
-                                isExternal
+                                isExternal={true}
                               >
                                 <ExternalLinkIcon />
                               </ExternalLink>
@@ -714,7 +714,7 @@ function TxHistoryTable({ showStats }: { showStats?: boolean }) {
                                 color="default !important"
                                 boxShadow="none !important"
                                 href={`https://mainnet-l2-explorer.surge.sh/tx/${tx.layer2Hash}`}
-                                isExternal
+                                isExternal={true}
                               >
                                 <ExternalLinkIcon />
                               </ExternalLink>

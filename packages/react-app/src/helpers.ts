@@ -44,6 +44,7 @@ export const processSentMessage = (
   relayedTxs: { msgHash: string; hash: string; timestamp: number }[]
 ) => {
   const tx = { ...rawTx };
+  // tslint:disable-next-line
   const [_, to] = decodeSentMessage(tx.message as string);
   const sentMsgHash = ethers.utils.solidityKeccak256(['bytes'], [tx.message]);
   const relayedTx = relayedTxs.find(msg => msg.msgHash === sentMsgHash);

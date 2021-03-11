@@ -54,13 +54,16 @@ const TopRow = ({
       <Heading size="sm" mt={0} mb={4} px={2}>
         {heading}
       </Heading>
-      <Grid columnGap={4} templateColumns="1fr 50px" borderRadius="20px" padding="1rem 1rem 2rem" bg={bg}>
-        <Box d="flex" alignItems="center" mb={4}>
-          <Image d="inline" w={5} h={5} mr={2} src="/logos/ETH.svg" alt="ETH Logo" />
-          <Box whiteSpace="pre" overflow="hidden" textOverflow="ellipsis" mr={2}>
-            {balancesLoading ? <Spinner size="xs" /> : balance}
-          </Box>{' '}
-          ETH
+      <Grid columnGap={4} templateColumns="1fr 50px" borderRadius="20px" padding="1rem 1rem 1.5rem" bg={bg}>
+        <Box>
+          <AccentText />
+          <Box d="flex" alignItems="center" mb={4}>
+            <Image d="inline" w={5} h={5} mr={2} src="/logos/ETH.svg" alt="ETH Logo" />
+            <Box whiteSpace="pre" overflow="hidden" textOverflow="ellipsis" mr={2}>
+              {balancesLoading ? <Spinner size="xs" /> : balance}
+            </Box>{' '}
+            ETH
+          </Box>
         </Box>
         <div />
         <Box d="flex" alignItems="center" w="100%">
@@ -89,6 +92,12 @@ const TopRow = ({
     </>
   );
 };
+
+const AccentText = () => (
+  <Text fontSize="sm" opacity={0.7} mb={2}>
+    Available balance
+  </Text>
+);
 
 function Balances({
   contracts,
@@ -172,8 +181,10 @@ function Balances({
       <Heading size="sm" mt={0} mb={4} px={2}>
         {connectedLayer === 2 ? network.toUpperCase() : connectedLayer === 1 ? 'OPTIMISM' : ''}
       </Heading>
-      <Box px={8} borderWidth="1px" borderRadius="20px" pt="1.5rem" pb="1.5rem">
-        <Box fontSize="1.5rem" whiteSpace="pre" textOverflow="ellipsis" overflow="hidden">
+      <Box px={4} borderWidth="1px" borderRadius="20px" py="1rem">
+        <AccentText />
+        <Box whiteSpace="pre" textOverflow="ellipsis" overflow="hidden" d="flex" alignItems="center">
+          <Image d="inline" w={5} h={5} mr={2} src="/logos/ETH.svg" alt="ETH Logo" />
           {balancesLoading ? <Spinner size="xs" /> : connectedLayer === 2 ? l1Balance : l2Balance} ETH
         </Box>
       </Box>
