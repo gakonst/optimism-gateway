@@ -9,13 +9,8 @@
   ],
   "private": true,
   "scripts": {
-    "subgraph:auth": "yarn workspace @project/l2-subgraph auth",
-    "subgraph:codegen": "yarn workspace @project/l2-subgraph codegen",
-    "subgraph:build": "yarn workspace @project/l2-subgraph build",
-    "subgraph:deploy": "yarn workspace @project/l2-subgraph deploy",
     "app:build": "yarn workspace @project/react-app build",
     "app:eject": "yarn workspace @project/react-app eject",
-    "app:ipfs": "yarn workspace @project/react-app ipfs",
     "app:start": "yarn workspace @project/react-app start",
     "app:test": "yarn workspace @project/react-app test",
     "app:deploy": "surge packages/react-app/build optimism-snx-tracker.surge.sh"

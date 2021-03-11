@@ -56,7 +56,7 @@ const l2Provider = new JsonRpcProvider(`https://mainnet.optimism.io`);
 const snxL1Contract = new Contract(addresses.l1.snxToken, abis.SynthetixL1Token, l1Provider);
 const snxL2Contract = new Contract(addresses.l2.snxToken, abis.SynthetixL2Token, l2Provider);
 
-function TxHistoryTable() {
+function TxHistoryTable({ showStats }: { showStats?: boolean }) {
   const history = useHistory();
   const [screenMd] = useMediaQuery('(min-width: 800px)');
   const {
@@ -558,7 +558,7 @@ function TxHistoryTable() {
         <TokenSelector handleTokenSelection={handleTokenSelection} tokenSymbol={tokenSelection?.symbol || ''} />
       </Box>
       <Flex mb={16} w="600px" mx="auto">
-        {tokenSelection && (
+        {showStats && tokenSelection && (
           <StatsTable
             price={price}
             depositAmountPending={depositAmountPending}
@@ -700,7 +700,7 @@ function TxHistoryTable() {
                                 color="default !important"
                                 boxShadow="none !important"
                                 href={`https://etherscan.io/tx/${tx.layer1Hash}`}
-                                isExternal
+                                isExternal={true}
                               >
                                 <ExternalLinkIcon />
                               </ExternalLink>
@@ -714,7 +714,7 @@ function TxHistoryTable() {
                                 color="default !important"
                                 boxShadow="none !important"
                                 href={`https://mainnet-l2-explorer.surge.sh/tx/${tx.layer2Hash}`}
-                                isExternal
+                                isExternal={true}
                               >
                                 <ExternalLinkIcon />
                               </ExternalLink>

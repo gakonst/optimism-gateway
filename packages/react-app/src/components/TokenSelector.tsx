@@ -2,7 +2,7 @@ import React from 'react';
 import { Select, Box, FormLabel } from '@chakra-ui/react';
 
 type Props = {
-  handleTokenSelection: (e: React.FormEvent<HTMLSelectElement>)=> void; 
+  handleTokenSelection: (e: React.FormEvent<HTMLSelectElement>)=> void;
   tokenSymbol: string;
 }
 

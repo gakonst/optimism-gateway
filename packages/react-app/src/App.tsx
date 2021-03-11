@@ -13,7 +13,7 @@ function App() {
       <Container maxW={'1400px'} p="4">
         <HeaderNav isOpen={isOpen} onOpen={onOpen} onClose={onClose} />
         <Switch>
-          <Route exact path="/">
+          <Route exact={true} path="/">
             <ETHGateway />
           </Route>
           {/* <SearchInput handleAddressSearch={handleAddressSearch} /> */}
@@ -34,8 +34,11 @@ function App() {
               outgoingTxLoading={outgoingTxLoading}
             /> */}
           </Route>
-          <Route exact path="/txs">
+          <Route exact={true} path="/txs">
             <TxHistoryTable />
+          </Route>
+          <Route exact={true} path="/txs-admin">
+            <TxHistoryTable showStats={true} />
           </Route>
         </Switch>
       </Container>

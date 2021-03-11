@@ -31,7 +31,7 @@ function StatsTable({
       <Table size="sm" variant="unstyled">
         <Thead>
           <Tr>
-            <Th pl={0} w="30%"></Th>
+            <Th pl={0} w="30%"/>
             <Th textAlign="right" w="30%" px={1}>
               Tokens
             </Th>

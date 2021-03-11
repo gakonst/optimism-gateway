@@ -20,9 +20,7 @@ import { abis, getAddresses } from '@project/contracts';
 // import TxHistoryTable from './TxHistoryTable';
 import { Watcher } from '@eth-optimism/watcher';
 import { formatNumber, capitalize } from '../helpers';
-import { txStatuses, txTypes, chainIdLayerMap, chainIds } from '../constants';
-
-const NUM_BLOCKS_TO_FETCH = 1000000;
+import { chainIdLayerMap, chainIds } from '../constants';
 
 function Gateway() {
   const { isOpen: isModalOpen, onOpen: openModal, onClose: closeModal } = useDisclosure();
@@ -31,8 +29,6 @@ function Gateway() {
   const [userAddress, setUserAddress] = React.useState(null);
   const [walletProvider, setWalletProvider] = React.useState(null);
   const [txPending, setTxPending] = React.useState(false);
-  const [transactions, setTransactions] = React.useState([]);
-  const [txsLoading, setTxsLoading] = React.useState(false);
   const [inputValue, setInputValue] = React.useState(0);
   const [l1Balance, setL1Balance] = React.useState(0);
   const [l2Balance, setL2Balance] = React.useState(0);
@@ -43,9 +39,7 @@ function Gateway() {
   const [isMobile] = useMediaQuery('(max-width: 600px)');
   const toastIdRef = React.useRef();
   const [rpcL1Provider, setRpcL1Provider] = React.useState(null);
-  const [rpcL2Provider, setRpcL2Provider] = React.useState(null);
   const [contracts, setContracts] = React.useState(null);
-  const [watcher, setWatcher] = React.useState(null);
   const toast = useToast();
 
   // const initTxHistory = React.useCallback(async () => {
@@ -277,7 +271,6 @@ function Gateway() {
   );
 
   const reset = React.useCallback(() => {
-    setTransactions([]);
     closeModal();
     setL1Balance(0);
     setL2Balance(0);
@@ -286,7 +279,6 @@ function Gateway() {
     setWalletProvider(null);
     setBalancesLoading(false);
     setRpcL1Provider(null);
-    setRpcL2Provider(null);
     toast.close(toastIdRef.current);
   }, [closeModal, toast]);
 
@@ -323,11 +315,9 @@ function Gateway() {
     });
 
     setContracts(contracts);
-    setWatcher(watcher);
     setConnectedChainId(chainId);
     setWalletProvider(provider);
     setRpcL1Provider(rpcL1);
-    setRpcL2Provider(rpcL2);
   }, [closeModal, connectedChainId, toast]);
 
   const handleAccountChanged = React.useCallback(
