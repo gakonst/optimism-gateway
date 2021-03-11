@@ -20,7 +20,7 @@ import { abis, getAddresses } from '@project/contracts';
 // import TxHistoryTable from './TxHistoryTable';
 import { Watcher } from '@eth-optimism/watcher';
 import { formatNumber, capitalize } from '../helpers';
-import { txStatuses, txTypes, chainIdLayerMap, chainIds } from '../constants';
+import { chainIdLayerMap, chainIds } from '../constants';
 
 const NUM_BLOCKS_TO_FETCH = 1000000;
 
