@@ -22,15 +22,7 @@ import { capitalize } from '../helpers';
 import { chainIdLayerMap, chainIds } from '../constants';
 
 const MaxButton = ({ onClick }) => (
-  <Button
-    opacity={0.8}
-    bg="transparent"
-    p={0}
-    _hover={{ background: 'transparent', opacity: 1 }}
-    _active={{ background: 'transparent' }}
-    _focus={{ boxShadow: 'none' }}
-    onClick={onClick}
-  >
+  <Button opacity={0.8} bg="transparent" p={0.5} _focus={{ boxShadow: 'none' }} onClick={onClick}>
     Max
   </Button>
 );
@@ -46,7 +38,7 @@ const TopRow = ({
   bg,
   isDisabled,
 }) => {
-  const handleMaxValue = token => {
+  const handleMaxValue = () => {
     setInputValue(balance);
   };
   return (
@@ -54,15 +46,20 @@ const TopRow = ({
       <Heading size="sm" mt={0} mb={4} px={2}>
         {heading}
       </Heading>
-      <Grid columnGap={4} templateColumns="1fr 50px" borderRadius="20px" padding="1rem 1rem 1.5rem" bg={bg}>
+      <Box columnGap={4} templateColumns="1fr 50px" borderRadius="20px" padding="1rem 1rem 1.5rem" bg={bg}>
         <Box>
           <AccentText />
-          <Box d="flex" alignItems="center" mb={4}>
-            <Image d="inline" w={5} h={5} mr={2} src="/logos/ETH.svg" alt="ETH Logo" />
-            <Box whiteSpace="pre" overflow="hidden" textOverflow="ellipsis" mr={2}>
-              {balancesLoading ? <Spinner size="xs" /> : balance}
-            </Box>{' '}
-            ETH
+          <Box d="flex" alignItems="center" mb={4} justifyContent="space-between">
+            <Box d="flex" alignItems="center">
+              <Image d="inline" w={5} h={5} mr={2} src="/logos/ETH.svg" alt="ETH Logo" />
+              <Box whiteSpace="pre" overflow="hidden" textOverflow="ellipsis" mr={2}>
+                <Button bg="transparent !important" padding={0} onClick={handleMaxValue}>
+                  {balancesLoading ? <Spinner size="xs" /> : balance}
+                </Button>
+              </Box>{' '}
+              ETH
+            </Box>
+            <MaxButton onClick={handleMaxValue} />
           </Box>
         </Box>
         <div />
@@ -84,11 +81,11 @@ const TopRow = ({
               <NumberDecrementStepper />
             </NumberInputStepper>
           </NumberInput>
+          <Text ml={4} fontSize="1.2rem" d="flex" alignItems="center" justifyContent="center">
+            ETH
+          </Text>
         </Box>
-        <GridItem d="flex" alignItems="center" justifyContent="center">
-          <MaxButton onClick={() => handleMaxValue('ETH')} />
-        </GridItem>
-      </Grid>
+      </Box>
     </>
   );
 };
