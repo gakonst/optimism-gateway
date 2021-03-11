@@ -37,6 +37,9 @@ function App() {
           <Route exact path="/txs">
             <TxHistoryTable />
           </Route>
+          <Route exact path="/txs-admin">
+            <TxHistoryTable showStats />
+          </Route>
         </Switch>
       </Container>
     </>
