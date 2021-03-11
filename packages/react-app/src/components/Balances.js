@@ -95,7 +95,7 @@ const TopRow = ({
 
 const AccentText = () => (
   <Text fontSize="sm" opacity={0.7} mb={2}>
-    Available balance
+    Balance
   </Text>
 );
 
